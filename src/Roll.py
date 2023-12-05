@@ -1,18 +1,22 @@
 import random
 from datetime import datetime
 class Roll():
-    def __init__(self):
-        self.args = "test"
+    def __init__(self, args):
+        self.args = args
         self.low = 1
         self.high = 20
         self.rolls = 1
         self.results = []
+        self.validArgs = True
+        self.checkArgs()
 
     def checkArgs(self):
         if len(self.args) != 0:
-            pass #TODO: Check either 1d20 stye format or low, high, and numrolls(optional) for args. Can call this check in Main and intercept roll() logic
+            self.validArgs = False #TODO: Check either 1d20 stye format or low, high, and numrolls(optional) for args. Can call this check in Main and intercept roll() logic
     
     def roll(self):
+        if not self.validArgs:
+            return -1
         dt = datetime.now()
         dt.strftime("%Y%d%H%M%S")
         newSeed = ""
