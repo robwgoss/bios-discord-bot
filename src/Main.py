@@ -2,6 +2,7 @@ import discord
 from discord.ext import commands
 from Messages import RouteMessage
 from configparser import ConfigParser
+from Roll import Roll
 
 
 #=====================================================================
@@ -24,8 +25,25 @@ config.read('../config/bot.cfg')
 )
 async def wordleStats(ctx, *args):
     await ctx.send("Success")
-    
 
+@bot.command(
+    name='roll',
+    description='Roll a dice!',
+    pass_context=True,
+)    
+async def rollTwenty(ctx, *args):
+    r = Roll()
+    results = r.roll()
+    index = 0
+    for r in results:
+        if(len(results) == 1):
+            msg = "Your roll was " + str(r) + "!"
+            await ctx.send(msg)
+        elif(len(results) > 1):
+            msg = "Results of roll number " + str(index) + ":    " + str(r)
+            await ctx.send(msg)
+        else:
+            await ctx.send("The bot critically missed rolling! How did that happen?")
 #=====================================================================
 #=                          Events                                   =
 #=====================================================================
