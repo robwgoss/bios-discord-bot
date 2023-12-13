@@ -29,8 +29,19 @@ class Roll():
             self.high = int(mod[dIndex+1:len(mod)]) + 1
             if self.rolls > 100 or self.high > 999999999999999:
                 return -1
+        elif len(self.args) == 3:
+            for arg in self.args:
+                if not arg.isdigit() or int(arg) < 0:
+                    return -1
+            self.rolls = int(self.args[0])
+            self.low = int(self.args[1])
+            self.high = int(self.args[2]) + 1
+            if self.low > self.high:
+                temp = self.low
+                self.low = self.high
+                self.high = temp
         else:
-            return
+            return -1
 
     def roll(self):
         if not self.validArgs:

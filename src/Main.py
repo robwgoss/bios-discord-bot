@@ -38,7 +38,7 @@ async def rollTwenty(ctx, *args):
         results = r.roll()
     try:  
         if results == -1:
-            msg = "Your arguments are not valid. Here are examples on how to use this command\n\`~roll` - A 1d20 roll.\n`~roll 3d5 - Rolls 3 5 sided dice\n~roll 5 10 3 - Rolls 3 random numbers between 5 and 10"
+            msg = "Your arguments are not valid. Here are examples on how to use this command\n\`~roll` - A 1d20 roll.\n`~roll 3d5 - Rolls 3 5 sided dice\n~roll 3 5 10 - Rolls 3 random numbers between 5 and 10"
             await ctx.send(msg)
             return
     except:
