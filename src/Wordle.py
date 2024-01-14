@@ -1,4 +1,5 @@
 import re, sqlite3
+from datetime import datetime, date
 class WordleData():
     def __init__(self, msg):
         self.message = msg
@@ -81,14 +82,18 @@ class WordleData():
                 total_yellow += yellow
                 total_miss += miss
                 query = """
-                    INSERT INTO T_WORDLE_MOVES VALUES(\'%s\',%s,%s,\'%s\',%s,%s,%s,%s,datetime('now', 'localtime'))
+                    INSERT INTO T_WORDLE_MOVES VALUES(\'%s\',%s,%s,\'%s\',%s,%s,%s,%s)
                 """ % (str(self.message.author), self.getWordleNum(), str(count - 1), line, str(green), str(yellow), str(miss), str(solved))
                 self.cursor.execute(query)
                 self.con.commit()
             count += 1
+        today = date.today()
+        day = str(today.strftime("%Y%m%d"))
+        now = datetime.now()
+        time = str(now.strftime("%H%M%S"))
         query = """
-                    INSERT INTO T_WORDLE_GAMES VALUES(\'%s\',%s,%s,%s,%s,%s,%s,datetime('now', 'localtime'))
-        """ % (str(self.message.author), self.getWordleNum(), str(count - 2), str(total_green), str(total_yellow), str(total_miss), str(solved))
+                    INSERT INTO T_WORDLE_GAMES VALUES(\'%s\',%s,%s,%s,%s,%s,%s,%s,%s)
+        """ % (str(self.message.author), self.getWordleNum(), str(count - 2), str(total_green), str(total_yellow), str(total_miss), str(solved), day, time)
         self.cursor.execute(query)
         self.con.commit()
         self.cursor.close()
