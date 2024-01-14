@@ -12,9 +12,9 @@ class RouteMessage():
     def wordle(self):
         w = WordleData(self.message)
         valid = w.validateWordle()
-        if valid:
+        unsolved = w.checkUnsolved()
+        if valid and unsolved:
             w.insertWordleData()
-            self.reponse = "Wordle time!"
             self.triggerFound = True
 
     def findTriggers(self):

@@ -7,6 +7,11 @@ class WordleData():
         self.con = sqlite3.connect("/home/bot/data/botProd.db")
         self.cursor = self.con.cursor()
 
+    def checkUnsolved(self):
+        query = 'SELECT solved FROM t_wordle_games where user_id = \'' + str(self.message.author) + '\' AND wordle_num = ' + str(self.getWordleNum())
+        res = self.cursor.execute(query)
+        return len(res.fetchall()) == 0
+
     def validateWordle(self):
         #Validates Wordle Header format of "Wordle xxx x/6"
         searchString = "^(Wordle)\s\d+\s.[/]{1}(6)\n"
@@ -28,7 +33,7 @@ class WordleData():
             count += 1
         headLine = self.splitArr[0].rstrip()
         self.attemps = headLine[len(headLine) - 3]
-        if self.attemps != 'X':
+        if self.attemps.lower() != 'x':
             if(len(self.splitArr) - 2 != int(self.attemps)):
                 return False
             if(self.splitArr[int(self.attemps) + 1] != "🟩🟩🟩🟩🟩"):
@@ -52,7 +57,6 @@ class WordleData():
                     toggle = 1
         return num.strip()
 
-#TODO: Update the rest of the tables, check to see if user has played this one before
     def insertWordleData(self):
         total_green = 0
         total_yellow = 0
@@ -73,11 +77,18 @@ class WordleData():
                         miss += 1
                 if green == 5:
                     solved = 1
+                total_green += green
+                total_yellow += yellow
+                total_miss += miss
                 query = """
                     INSERT INTO T_WORDLE_MOVES VALUES(\'%s\',%s,%s,\'%s\',%s,%s,%s,%s,datetime('now', 'localtime'))
                 """ % (str(self.message.author), self.getWordleNum(), str(count - 1), line, str(green), str(yellow), str(miss), str(solved))
                 self.cursor.execute(query)
                 self.con.commit()
             count += 1
-
-
+        query = """
+                    INSERT INTO T_WORDLE_GAMES VALUES(\'%s\',%s,%s,%s,%s,%s,%s,datetime('now', 'localtime'))
+        """ % (str(self.message.author), self.getWordleNum(), str(count - 2), str(total_green), str(total_yellow), str(total_miss), str(solved))
+        self.cursor.execute(query)
+        self.con.commit()
+        self.cursor.close()
