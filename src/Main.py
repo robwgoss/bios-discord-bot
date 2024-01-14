@@ -80,14 +80,14 @@ async def rollTwenty(ctx, *args):
 @bot.listen()
 async def on_message(message):
     if message.author == bot.user:
-            return 
+        return 
     rm = RouteMessage(bot, message)
     response = rm.getResponse()
     if response != "NULL":
         await message.channel.send(response)
     
     if message.content == "test":
-         await message.channel.send("response")
+        await message.channel.send("response")
 
 
 #=====================================================================
