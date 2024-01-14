@@ -15,7 +15,7 @@ class RouteMessage():
         if valid:
             unsolved = w.checkUnsolved()
             if unsolved:
-                w.insertWordleData()
+                w.processWordleData()
                 self.triggerFound = True
 
     def findTriggers(self):
@@ -29,4 +29,3 @@ class RouteMessage():
 
     def getResponse(self):
         return self.reponse
-

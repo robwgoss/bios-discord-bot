@@ -8,4 +8,5 @@ def ConnectDB(env):
         print("FAILURE")
         return False
 
-# def logError(msg, ):
+def logError(msg, program_name):
+    print(msg)
