@@ -3,6 +3,7 @@ from discord.ext import commands
 from Messages import RouteMessage
 from configparser import ConfigParser
 from Roll import Roll
+from Wordle import Wordle
 
 
 #=====================================================================
@@ -10,6 +11,7 @@ from Roll import Roll
 #=====================================================================
 intents = discord.Intents.default()
 intents.message_content = True
+intents.members = True
 bot = commands.Bot(command_prefix = "~", intents=intents)
 config = ConfigParser()
 config.read('../config/bot.cfg')
@@ -19,12 +21,14 @@ config.read('../config/bot.cfg')
 #=                          Commands                                 =
 #=====================================================================
 @bot.command(
-    name='wordleStats',
+    name='wordle',
     description='Wordle stats for a given user',
     pass_context=True,
 )
-async def wordleStats(ctx, *args):
-    await ctx.send("Success")
+async def wordle(ctx, *args):
+    ws = Wordle()
+    response = ws.processArgs(args, ctx)
+
 
 @bot.command(
     name='roll',
@@ -34,11 +38,15 @@ async def wordleStats(ctx, *args):
 async def rollTwenty(ctx, *args):
     r = Roll()
     results = r.setRollCfg(args)
-    if results != -1:
+    if results == 0:
         results = r.roll()
+    elif results == 2:
+        msg = "Here are examples on how to use this command\n`~roll` *A 1d20 roll*\n`~roll 3d5`* Rolls 3 5 sided dice*\n`~roll 3 5 10` *Rolls 3 random numbers between 5 and 10*"
+        await ctx.send(msg)
+        return
     try:  
-        if results == -1:
-            msg = "Your arguments are not valid. Here are examples on how to use this command\n\`~roll` - A 1d20 roll.\n`~roll 3d5 - Rolls 3 5 sided dice\n~roll 3 5 10 - Rolls 3 random numbers between 5 and 10"
+        if results == 1:
+            msg = "Your arguments are not valid. Here are examples on how to use this command\n`~roll` *A 1d20 roll*\n`~roll 3d5` *Rolls 3 5 sided dice*\n`~roll 3 5 10` *Rolls 3 random numbers between 5 and 10*"
             await ctx.send(msg)
             return
     except:
@@ -82,10 +90,12 @@ async def on_message(message):
     if message.author == bot.user:
         return 
     rm = RouteMessage(bot, message)
-    response = rm.getResponse()
-    if response != "NULL":
-        await message.channel.send(response)
-    
+    #Change response to tuple with [0] being response code. Base response off of this code
+    responseCode = rm.getResponseCode()
+    if responseCode == 0:
+        await message.channel.send(rm.getResponseMsg())
+    elif responseCode == 1:
+        await message.add_reaction(rm.getResponseMsg())
     if message.content == "test":
         await message.channel.send("response")
 
