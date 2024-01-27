@@ -244,7 +244,11 @@ class WordleStat():
 
     async def generateWordleNumStatImg(self):
         try:
-            image = Image.new(mode="RGBA", size=(1500, 1500), color = (0, 0, 0))
+            picWidth = 1500
+            picHeight = 1500 - (150 * (5 - len(self.results)))
+            if len(self.results) == 0:
+                picHeight = 1000
+            image = Image.new(mode="RGBA", size=(picWidth, picHeight), color = (0, 0, 0))
             draw = ImageDraw.Draw(image)
             #Header
             font = ImageFont.truetype("../assets/test.ttf", size=120)
@@ -268,6 +272,36 @@ class WordleStat():
             draw.rectangle([(x, y), (x + 300, y + 300)], fill = (32, 194, 14))
             image.paste(guildIcon, (x + 20, y + 20))
 
+            if len(self.results) == 0:
+                font = ImageFont.truetype("../assets/test.ttf", size=120)
+                noData = "- NO DATA FOUND -"
+                draw.text((325,800), noData, font=font, fill = (32, 194, 14))
+            else:
+                x = 150
+                y = 775
+                count = 1
+                font = ImageFont.truetype("../assets/test.ttf", size=60)
+                for result in self.results:
+                    place = str(count) + '.'
+                    draw.text((x, y), place, font=font, fill = (32, 194, 14))
+                    userId = result[0]
+                    member = await self.ctx.guild.fetch_member(int(userId))
+                    imageBytes = await member.avatar.read()
+                    authorAvatar = Image.open(io.BytesIO(imageBytes))
+                    authorAvatar = authorAvatar.resize((80,80))
+                    draw.rectangle([(x + 110, y - 25), (x + 220, y + 85)], fill = self.getPlaceColorRgb(count))
+                    image.paste(authorAvatar, (x + 125, y - 10))
+                    name = member.name
+                    if len(name) >= 24:
+                        name = name[0:24]
+                        name += '~'
+                    while len(name) < 24 :
+                        name += ' '
+                    name = name + ' ' + str(result[2]) + '/6'
+                    draw.text((x + 280, y), name, font=font, fill = (32, 194, 14))
+                    y += 150
+                    count += 1
+
             statImgName = '../tmp/' + str(self.ctx.guild.id) + '_wordleNumStat' + '_' + str(self.wordleNum) + '.png'
             image.save(statImgName)
             await self.ctx.channel.send(file=discord.File(statImgName))
@@ -277,6 +311,21 @@ class WordleStat():
             msg = 'WordleStat failed to generate image'
             Utils.logError(msg, PROGRAM_NAME)
             return False
+        
+    def getPlaceColorRgb(self, place):
+        if place == 1:
+            color = (239, 169, 0)
+            return color
+        elif place == 2:
+            color = (167, 167, 173)
+            return color
+        elif place == 3:
+            color = (130, 74, 2)
+            return color
+        else:
+            color = (32, 194, 14)
+            return color
+
 
     def getGuildMembers(self):
         memberStr = ''
