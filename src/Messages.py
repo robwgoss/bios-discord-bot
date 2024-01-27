@@ -5,13 +5,13 @@ class RouteMessage():
         self.message = message
         self.content = message.content
         self.channel = message.channel
-        self.reponseCode = -1
+        self.responseCode = -1
         self.responseMsg = ""
         self.triggerFound = False
         self.findTriggers()
 
     def getResponseCode(self):
-        return self.reponseCode
+        return self.responseCode
 
     def getResponseMsg(self):
         return self.responseMsg
@@ -26,7 +26,7 @@ class RouteMessage():
             if unsolved:
                 w.processWordleData()
                 self.triggerFound = True
-                self.responseMsg = "✅"
+                self.responseMsg = '✅'
 
     #Drives message parsing functions to find a "trigger" to react to, and ensures only one trigger per message is hit
     def findTriggers(self):

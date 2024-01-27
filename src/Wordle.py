@@ -1,6 +1,7 @@
 PROGRAM_NAME = "Wordle.py"
 
-import re, sqlite3, Utils
+import re, sqlite3, Utils, discord, io, os
+from PIL import Image, ImageDraw, ImageFont
 from datetime import datetime, date
 
 
@@ -181,7 +182,7 @@ class WordleData():
         self.cursor.close()
 
 class Wordle():
-    def processArgs(self, args, ctx):
+    async def processArgs(self, args, ctx):
         if len(args) == 0:
             return WordleStat(0, ctx)
         elif len(args) == 1:
@@ -191,32 +192,35 @@ class Wordle():
             elif arg.lower() == 'practice':
                 practice = WordlePractice()
             elif arg.lower() == 'guild':
-                return WordleStat(1, ctx)
+                ws = WordleStat(1, ctx)
+                return await ws.routeCommand()
             elif arg.isnumeric():
                 wordleNum = int(arg)
                 if wordleNum < 1 or wordleNum > 2000:
                     return 1
                 else:
-                    return WordleStat(2, ctx, wordleNum)
+                    ws = WordleStat(2, ctx, wordleNum)
+                    return await ws.routeCommand()
         else:
             return 1
+
 
 class WordleStat():
     def __init__(self, commandInd, ctx, wordleNum=''):
         self.commandInd = commandInd
         self.ctx = ctx
         self.wordleNum = wordleNum
+        self.imageSet = []
         self.con = sqlite3.connect("../data/botProd.db")
         self.cursor = self.con.cursor()
-        self.routeCommand()
 
-    def routeCommand(self):
+    async def routeCommand(self):
         if self.commandInd == 0:
             print("Default user stats")
         elif self.commandInd == 1:
             print("Wordle stats for users in channel")
         elif self.commandInd == 2:
-            self.wordleNumStat(self.wordleNum)
+            return await self.wordleNumStat()
         else:
             msg = 'WordleStat recieved bad arguments'
             Utils.logError(msg, PROGRAM_NAME)
@@ -226,22 +230,62 @@ class WordleStat():
     def guildLeaderboard(self):
         query = ''
 
-    def wordleNumStat(self, wordleNum):
-        query = 'SELECT * FROM T_WORDLE_GAMES WHERE wordle_num = ' + str(wordleNum) + ' AND user_id in ( ' + self.getGuildMembers() + ') ORDER BY num_moves ASC, dte_game ASC, time_game ASC LIMIT 5'
+    async def wordleNumStat(self):
+        query = 'SELECT * FROM T_WORDLE_GAMES WHERE wordle_num = ' + str(self.wordleNum) + ' AND user_id in ( ' + self.getGuildMembers() + ') ORDER BY num_moves ASC, dte_game ASC, time_game ASC LIMIT 5'
         try:
             res = self.cursor.execute(query)
         except Exception as e:
             Utils.logError(str(e), PROGRAM_NAME)
             exit(1)
-        results = res.fetchall()
-        for result in results:
-            print(self.ctx.guild.get_member(result[0]))
+        self.results = res.fetchall()
+        if await self.generateWordleNumStatImg():
+            return 2
+        return 1
+
+    async def generateWordleNumStatImg(self):
+        try:
+            image = Image.new(mode="RGBA", size=(1500, 1500), color = (0, 0, 0))
+            draw = ImageDraw.Draw(image)
+            #Header
+            font = ImageFont.truetype("../assets/test.ttf", size=120)
+            header = "> Stats for Wordle [" + str(self.wordleNum) + "]\n========================"
+            draw.text((145,100), header, font=font, fill = (32, 194, 14))
+            #Server Text
+            font = ImageFont.truetype("../assets/test.ttf", size=80)
+            guildName = self.ctx.guild.name
+            if len(guildName) > 20:
+                guildName = guildName[0:20]
+            guildLine = "\nServer Leaderboard\n------------------\n" + guildName + "\n------------------"
+            guildLine += "\n\n~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~"
+            draw.text((150,300), guildLine, font=font, fill = (32, 194, 14))
+
+            #Server Image - Note check if no image
+            imageBytes = await self.ctx.guild.icon.read()
+            guildIcon = Image.open(io.BytesIO(imageBytes))
+            guildIcon = guildIcon.resize((260,260))
+            x = 1030
+            y = 310
+            draw.rectangle([(x, y), (x + 300, y + 300)], fill = (32, 194, 14))
+            image.paste(guildIcon, (x + 20, y + 20))
+
+            statImgName = '../tmp/' + str(self.ctx.guild.id) + '_wordleNumStat' + '_' + str(self.wordleNum) + '.png'
+            image.save(statImgName)
+            await self.ctx.channel.send(file=discord.File(statImgName))
+            os.remove(statImgName)
+            return True
+        except:
+            msg = 'WordleStat failed to generate image'
+            Utils.logError(msg, PROGRAM_NAME)
+            return False
 
     def getGuildMembers(self):
         memberStr = ''
         for member in self.ctx.guild.members:
             memberStr += '' + str(member.id) + ','
         return memberStr[0:len(memberStr) - 1]
+    
+    def getImageSet(self):
+        return self.imageSet
 
 
 class WordlePractice():

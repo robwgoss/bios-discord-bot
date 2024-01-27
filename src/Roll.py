@@ -1,11 +1,12 @@
 import random, re
 from datetime import datetime
 class Roll():
-    def __init__(self):
+    def __init__(self, ctx):
         self.low = 1
         self.high = 21
         self.rolls = 1
         self.results = []
+        self.ctx = ctx
 
     def setRollCfg(self, args):
         self.args = args
@@ -48,7 +49,7 @@ class Roll():
         else:
             return 1
 
-    def roll(self):
+    async def roll(self):
         dt = datetime.now()
         dt.strftime("%Y%d%H%M%S")
         newSeed = ""
@@ -59,4 +60,34 @@ class Roll():
         while self.rolls > 0:
             self.results.append(random.randrange(self.low, self.high))
             self.rolls -= 1 
-        return self.results
+        index = 0
+        sum = 0
+        multi = False
+        highRoll = False
+        msg = ""
+        for r in self.results:
+            if(len(self.results) == 1):
+                msg = "Your roll was " + str(r) + "!"
+                await self.ctx.send(msg)
+            elif(len(self.results) > 10):
+                if not multi:
+                    msg = "Result of your rolls\n===========================\n"
+                    multi = True
+                    highRoll = True
+                sum += r
+                msg += str(r) + ", "
+            elif(len(self.results) > 1):
+                if not multi:
+                    multi = True
+                sum += r
+                index += 1
+                msg = "Result of roll number " + str(index) + " :    " + str(r)
+                await self.ctx.send(msg)
+            else:
+                await self.ctx.send("The bot critically missed rolling! How did that happen?")
+        if multi:
+            if highRoll:
+                msg = msg[0:len(msg) - 2]
+                await self.ctx.send(msg)
+            msg = "===========================\nThe sum of your rolls was " + str(sum) + "!\n==========================="
+            await self.ctx.send(msg)

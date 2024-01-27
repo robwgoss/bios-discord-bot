@@ -27,7 +27,7 @@ config.read('../config/bot.cfg')
 )
 async def wordle(ctx, *args):
     ws = Wordle()
-    response = ws.processArgs(args, ctx)
+    response = await ws.processArgs(args, ctx)
 
 
 @bot.command(
@@ -36,10 +36,10 @@ async def wordle(ctx, *args):
     pass_context=True,
 )    
 async def rollTwenty(ctx, *args):
-    r = Roll()
+    r = Roll(ctx)
     results = r.setRollCfg(args)
     if results == 0:
-        results = r.roll()
+        await r.roll()
     elif results == 2:
         msg = "Here are examples on how to use this command\n`~roll` *A 1d20 roll*\n`~roll 3d5`* Rolls 3 5 sided dice*\n`~roll 3 5 10` *Rolls 3 random numbers between 5 and 10*"
         await ctx.send(msg)
@@ -51,37 +51,7 @@ async def rollTwenty(ctx, *args):
             return
     except:
         print("Critical error occured. Results passed - " + str(results))
-    index = 0
-    sum = 0
-    multi = False
-    highRoll = False
-    msg = ""
-    for r in results:
-        if(len(results) == 1):
-            msg = "Your roll was " + str(r) + "!"
-            await ctx.send(msg)
-        elif(len(results) > 10):
-            if not multi:
-                msg = "Result of your rolls\n===========================\n"
-                multi = True
-                highRoll = True
-            sum += r
-            msg += str(r) + ", "
-        elif(len(results) > 1):
-            if not multi:
-                multi = True
-            sum += r
-            index += 1
-            msg = "Result of roll number " + str(index) + " :    " + str(r)
-            await ctx.send(msg)
-        else:
-            await ctx.send("The bot critically missed rolling! How did that happen?")
-    if multi:
-        if highRoll:
-            msg = msg[0:len(msg) - 2]
-            await ctx.send(msg)
-        msg = "===========================\nThe sum of your rolls was " + str(sum) + "!\n==========================="
-        await ctx.send(msg)
+
 #=====================================================================
 #=                          Events                                   =
 #=====================================================================
