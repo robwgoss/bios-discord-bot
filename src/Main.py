@@ -28,7 +28,16 @@ config.read('../config/bot.cfg')
 async def wordle(ctx, *args):
     ws = Wordle()
     response = await ws.processArgs(args, ctx)
-
+    if response == 1:
+        msg = "A critical server error has occured! Unable to process your request"
+        await ctx.send(msg)
+    elif response == 2 or response == 3:
+        msg = ''
+        if response == 3:
+            msg += 'Your arguments are not valid.\n'
+        msg = 'Here are examples on how to use this command\n`~wordle stats` *Personal Wordle stats*\n`~wordle 951` *Guild stats for Wordle 951*'
+        await ctx.send(msg)
+        return
 
 @bot.command(
     name='roll',

@@ -197,12 +197,14 @@ class Wordle():
             elif arg.isnumeric():
                 wordleNum = int(arg)
                 if wordleNum < 1 or wordleNum > 2000:
-                    return 1
+                    return 3
                 else:
                     ws = WordleStat(2, ctx, wordleNum)
                     return await ws.routeCommand()
+            else:
+                return 3
         else:
-            return 1
+            return 3
 
 
 class WordleStat():
@@ -210,7 +212,6 @@ class WordleStat():
         self.commandInd = commandInd
         self.ctx = ctx
         self.wordleNum = wordleNum
-        self.imageSet = []
         self.con = sqlite3.connect("../data/botProd.db")
         self.cursor = self.con.cursor()
 
@@ -231,7 +232,7 @@ class WordleStat():
         query = ''
 
     async def wordleNumStat(self):
-        query = 'SELECT * FROM T_WORDLE_GAMES WHERE wordle_num = ' + str(self.wordleNum) + ' AND user_id in ( ' + self.getGuildMembers() + ') ORDER BY num_moves ASC, dte_game ASC, time_game ASC LIMIT 5'
+        query = 'SELECT * FROM T_WORDLE_GAMES WHERE wordle_num = ' + str(self.wordleNum) + ' AND user_id in ( ' + self.getGuildMembers() + ') AND SOLVED = 1 ORDER BY num_moves ASC, dte_game ASC, time_game ASC LIMIT 5'
         try:
             res = self.cursor.execute(query)
         except Exception as e:
@@ -239,7 +240,7 @@ class WordleStat():
             exit(1)
         self.results = res.fetchall()
         if await self.generateWordleNumStatImg():
-            return 2
+            return 0
         return 1
 
     async def generateWordleNumStatImg(self):
@@ -249,16 +250,16 @@ class WordleStat():
             image = Image.new(mode="RGBA", size=(picWidth, picHeight), color = (0, 0, 0))
             draw = ImageDraw.Draw(image)
             #Header
-            font = ImageFont.truetype("../assets/test.ttf", size=120)
-            header = "> Stats for Wordle [" + str(self.wordleNum) + "]\n========================"
+            font = ImageFont.truetype("../assets/terminalFont.ttf", size=120)
+            header = "> Stats for Wordle [" + str(self.wordleNum) + "]\n========================="
             draw.text((145,100), header, font=font, fill = (32, 194, 14))
             #Server Text
-            font = ImageFont.truetype("../assets/test.ttf", size=80)
+            font = ImageFont.truetype("../assets/terminalFont.ttf", size=80)
             guildName = self.ctx.guild.name
             if len(guildName) > 20:
                 guildName = guildName[0:20]
             guildLine = "\nServer Leaderboard\n------------------\n" + guildName + "\n------------------"
-            guildLine += "\n\n~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~"
+            guildLine += "\n\n~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~"
             draw.text((150,300), guildLine, font=font, fill = (32, 194, 14))
 
             #Server Image - Note check if no image
@@ -271,13 +272,13 @@ class WordleStat():
             image.paste(guildIcon, (x + 20, y + 20))
             #Stats
             if len(self.results) == 0:
-                font = ImageFont.truetype("../assets/test.ttf", size=120)
+                font = ImageFont.truetype("../assets/terminalFont.ttf", size=120)
                 noData = "- NO DATA FOUND -"
                 draw.text((325,800), noData, font=font, fill = (32, 194, 14))
             else:
                 y = 775
                 count = 1
-                font = ImageFont.truetype("../assets/test.ttf", size=60)
+                font = ImageFont.truetype("../assets/terminalFont.ttf", size=60)
                 for result in self.results:
                     #Generate place, avatar, and name for user
                     x = 50
@@ -317,7 +318,7 @@ class WordleStat():
                     dateRaw = str(result[7])
                     dateStr = dateRaw[0:4] + '/' + dateRaw[4:6] + '/' + dateRaw[6:8]
                     timeStr = dateStr + '\n' + self.formatTime(str(result[8]))
-                    font = ImageFont.truetype("../assets/test.ttf", size=60)
+                    font = ImageFont.truetype("../assets/terminalFont.ttf", size=60)
                     draw.text((x, y - 30), timeStr, font=font, fill = (32, 194, 14))
                     #Increment
                     y += 170
@@ -347,31 +348,35 @@ class WordleStat():
             color = (32, 194, 14)
             return color
 
-    def formatTime(self, rawTime):
-        timeStr = ''
-        if len(rawTime) == 4:
-            timeStr = '12:' + rawTime[0:2] + ':' + rawTime[2:4] + ' AM'
-        elif len(rawTime) == 5:
-            timeStr = '0' + rawTime[0] + ':' + rawTime[1:3] + ':' + rawTime[3:5] + ' AM'
-        else:
-            hours = int(rawTime[0:2])
-            if hours >= 12:
-                timeStr = str(hours) + ':' + rawTime[2:4] + ':' + rawTime[4:6] + ' PM'
-            elif hours < 12:
-                timeStr = str(hours) + ':' + rawTime[2:4] + ':' + rawTime[4:6] + ' AM'
-            else:
-                msg = "Error in formatTime - Bad string passed."
-                Utils.logError(msg, PROGRAM_NAME)
-        return timeStr 
     def getGuildMembers(self):
         memberStr = ''
         for member in self.ctx.guild.members:
             memberStr += '' + str(member.id) + ','
         return memberStr[0:len(memberStr) - 1]
-    
-    def getImageSet(self):
-        return self.imageSet
 
+
+    def formatTime(self, rawTime):
+            timeStr = ''
+            if len(rawTime) < 5:
+                charCount = 4 - len(rawTime)
+                zeroStr = ''
+                for x in range(charCount):
+                    zeroStr += '0'
+                rawTime = zeroStr + rawTime
+                timeStr = '12:' + rawTime[0:2] + ':' + rawTime[2:4] + ' AM'
+            elif len(rawTime) == 5:
+                timeStr = '0' + rawTime[0] + ':' + rawTime[1:3] + ':' + rawTime[3:5] + ' AM'
+            else:
+                hours = int(rawTime[0:2])
+                if hours >= 12:
+                    hours -= 12
+                    timeStr = str(hours) + ':' + rawTime[2:4] + ':' + rawTime[4:6] + ' PM'
+                elif hours < 12:
+                    timeStr = str(hours) + ':' + rawTime[2:4] + ':' + rawTime[4:6] + ' AM'
+                else:
+                    msg = "Error in formatTime - Bad string passed."
+                    Utils.logError(msg, PROGRAM_NAME)
+            return timeStr 
 
 class WordlePractice():
     def __init__(self):
