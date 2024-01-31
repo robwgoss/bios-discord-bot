@@ -1,3 +1,29 @@
+PROGRAM_NAME = "Roll.py"
+
+##########################################################
+#                                                        #
+#   Program          Roll.py                             #
+#                                                        #
+#   Description      Responds to the ~roll command based #
+#                    off the following options:          #
+#                                                        #
+#   ~roll            Rolls a single 20 sided dice        #
+#                                                        #
+#   ~roll xdy        Roll option where x is the number   #
+#                    of rolls, d is a constant character,#
+#                    and y is the max roll.              #
+#                    Client Command Ex. ~roll 5d15       #
+#                                                        #
+#  ~roll x y z       Roll option where x is the number   #
+#                    of rolls, y is the min roll, and z  #
+#                    is the max roll.                    #
+#                    Client Command Ex. ~roll 2 4 6      #
+#                                                        #
+#  ~roll help        Displays available commands in the  #
+#                    client.                             #
+#                                                        #                
+##########################################################
+
 import random, re
 from datetime import datetime
 class Roll():

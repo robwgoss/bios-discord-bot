@@ -1,3 +1,18 @@
+PROGRAM_NAME = "Messages.py"
+
+##########################################################
+#                                                        #
+#   Program          Messages.py                         #
+#                                                        #
+#   Description      All new messages from any channel   #
+#                    the bot can read are processed here.#
+#                    Each message is put through         #
+#                    functions to find "triggers" to     #
+#                    take action on. Does nothing if no  #
+#                    trigger is found.                   #
+#                                                        #
+##########################################################
+
 from Wordle import WordleData
 class RouteMessage():
     def __init__(self, bot, message):
@@ -28,7 +43,6 @@ class RouteMessage():
                 self.triggerFound = True
                 self.responseMsg = '✅'
 
-    #Drives message parsing functions to find a "trigger" to react to, and ensures only one trigger per message is hit
     def findTriggers(self):
         self.triggers = [
             self.wordle

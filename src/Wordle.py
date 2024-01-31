@@ -1,10 +1,28 @@
 PROGRAM_NAME = "Wordle.py"
 
+##########################################################
+#                                                        #
+#   Program          Wordle.py                           #
+#                                                        #
+#   Description      Generates images for the author's   #
+#                    channel based off Wordle data that  #
+#                    has been gathered and cleaned by    #
+#                    this program.                       #
+#                                                        #
+##########################################################
+
 import re, sqlite3, Utils, discord, io, os
 from PIL import Image, ImageDraw, ImageFont
 from datetime import datetime, date
 
-
+##########################################################
+#                                                        #
+#   Class            WordleData()                        #
+#                                                        #
+#   Description      Processes Wordle data if message    #
+#                    watcher detects a valid Wordle      #
+#                                                        #
+##########################################################
 class WordleData():
     def __init__(self, msg):
         self.message = msg
@@ -131,7 +149,6 @@ class WordleData():
             exit(1)
 
 
-
     def processWordleData(self):
         self.total_green = 0
         self.total_yellow = 0
@@ -180,7 +197,26 @@ class WordleData():
         self.updateGlobalData()
         self.con.commit()
         self.cursor.close()
-
+##########################################################
+#                                                        #
+#   Class            Wordle()                            #
+#                                                        #
+#   Description      Drives the ~wordle command based    #
+#                    off the args passed from the client #
+#                    and through the command on main.    #
+#                                                        #
+#   Command Options                                      #
+#                                                        #
+#   ~wordle x        Wordle option to generate an image  #
+#                    that's sent to the author's channel #
+#                    with a guild leaderboard for the    #
+#                    day.                                #
+#                    Client Command Ex. ~wordle 952      #
+#                                                        #
+#   ~wordle help     Displays available Wordle commands  #
+#                    in the author's channel.            #
+#                                                        #
+##########################################################
 class Wordle():
     async def processArgs(self, args, ctx):
         if len(args) == 0:
@@ -189,8 +225,6 @@ class Wordle():
             arg = args[0]
             if arg.lower() == 'help':
                 return 2
-            elif arg.lower() == 'practice':
-                practice = WordlePractice()
             elif arg.lower() == 'guild':
                 ws = WordleStat(1, ctx)
                 return await ws.routeCommand()
@@ -205,8 +239,14 @@ class Wordle():
                 return 3
         else:
             return 3
-
-
+##########################################################
+#                                                        #
+#   Class            WordleStat()                        #
+#                                                        #
+#   Description      Generates visualized Wordle data    #
+#                    gathered from WordleData() class.   #
+#                                                        #
+##########################################################
 class WordleStat():
     def __init__(self, commandInd, ctx, wordleNum=''):
         self.commandInd = commandInd
@@ -227,9 +267,6 @@ class WordleStat():
             Utils.logError(msg, PROGRAM_NAME)
             return 1
         return 0
-    
-    def guildLeaderboard(self):
-        query = ''
 
     async def wordleNumStat(self):
         query = 'SELECT * FROM T_WORDLE_GAMES WHERE wordle_num = ' + str(self.wordleNum) + ' AND user_id in ( ' + self.getGuildMembers() + ') AND SOLVED = 1 ORDER BY num_moves ASC, dte_game ASC, time_game ASC LIMIT 5'
@@ -337,16 +374,13 @@ class WordleStat():
     def getPlaceColorRgb(self, place):
         if place == 1:
             color = (239, 169, 0)
-            return color
         elif place == 2:
             color = (167, 167, 173)
-            return color
         elif place == 3:
             color = (130, 74, 2)
-            return color
         else:
             color = (32, 194, 14)
-            return color
+        return color
 
     def getGuildMembers(self):
         memberStr = ''
@@ -377,7 +411,3 @@ class WordleStat():
                     msg = "Error in formatTime - Bad string passed."
                     Utils.logError(msg, PROGRAM_NAME)
             return timeStr 
-
-class WordlePractice():
-    def __init__(self):
-        print("test")

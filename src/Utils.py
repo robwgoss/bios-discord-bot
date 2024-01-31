@@ -1,3 +1,13 @@
+PROGRAM_NAME = "Utils.py"
+
+##########################################################
+#                                                        #
+#   Program          Utils.py                            #
+#                                                        #
+#   Description      Server utilities and general use    #
+#                    functions for the bot.              #
+##########################################################
+
 import sqlite3
 
 def ConnectDB(env):

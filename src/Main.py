@@ -1,3 +1,17 @@
+PROGRAM_NAME = "Main.py"
+
+##########################################################
+#                                                        #
+#   Program          Main.py                             #
+#                                                        #
+#   Description      Server driver, will run until       #
+#                    manually stopped or on crash.       #
+#                    Routes commands to be executed and  #
+#                    messages to be read by supporting   #
+#                    programs.                           #
+#                                                        #
+##########################################################
+
 import discord
 from discord.ext import commands
 from Messages import RouteMessage
