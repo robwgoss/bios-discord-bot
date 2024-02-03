@@ -402,10 +402,10 @@ class WordleStat():
                 timeStr = '0' + rawTime[0] + ':' + rawTime[1:3] + ':' + rawTime[3:5] + ' AM'
             else:
                 hours = int(rawTime[0:2])
-                if hours >= 12:
+                if hours > 12:
                     hours -= 12
                     timeStr = str(hours) + ':' + rawTime[2:4] + ':' + rawTime[4:6] + ' PM'
-                elif hours < 12:
+                elif hours <= 12:
                     timeStr = str(hours) + ':' + rawTime[2:4] + ':' + rawTime[4:6] + ' AM'
                 else:
                     msg = "Error in formatTime - Bad string passed."
