@@ -53,7 +53,6 @@ async def drawLeaderboardUser(y, count, image, userId, ctx):
         imageBytes = await member.avatar.read()
         authorAvatar = Image.open(io.BytesIO(imageBytes))
         authorAvatar = authorAvatar.resize((80,80))
-        print("Place: " + str(place))
         draw.rectangle([(x + 110, y - 25), (x + 220, y + 85)], fill = getPlaceColorRgb(count))
         image.paste(authorAvatar, (x + 125, y - 10))
         name = member.display_name

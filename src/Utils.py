@@ -19,8 +19,10 @@ def ConnectDB(env):
         print("FAILURE")
         return False
 
-def logError(msg, program_name):
+def logError(msg, program_name, exception):
     msg = "Error in " + program_name + " - " + msg
+    msg += '\n------------------------------------\n'
+    msg += 'Exception\n==========\n' + exception
     print(msg)
 
 def cleanMember(author):

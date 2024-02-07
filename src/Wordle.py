@@ -43,7 +43,8 @@ class WordleData():
         try:
             res = self.cursor.execute(query)
         except Exception as e:
-            Utils.logError(str(e), PROGRAM_NAME)
+            msg = "Error in checkUnsolved executing:\n" + query
+            Utils.logError(msg, PROGRAM_NAME, str(e))
             return False
         if len(res.fetchall()) == 0:
             return True
@@ -103,7 +104,8 @@ class WordleData():
         try:
             res = self.cursor.execute(query)
         except Exception as e:
-            Utils.logError(str(e), PROGRAM_NAME)
+            msg = "Error in updateGlobalData executing:\n" + query
+            Utils.logError(msg, PROGRAM_NAME, str(e))
             exit(1)
         results = res.fetchall()
         if(len(results) == 0):
@@ -122,7 +124,8 @@ class WordleData():
             try:
                 self.cursor.execute(query)
             except Exception as e:
-                Utils.logError(str(e), PROGRAM_NAME)
+                msg = "Error in updateGlobalData executing:\n" + query
+                Utils.logError(msg, PROGRAM_NAME, str(e))
                 exit(1)
             self.con.commit()
         else:
@@ -148,9 +151,9 @@ class WordleData():
         try:
             self.cursor.execute(query)
         except Exception as e:
-            Utils.logError(str(e), PROGRAM_NAME)
+            msg = "Error in updateGlobalData executing:\n" + query
+            Utils.logError(msg, PROGRAM_NAME, str(e))
             exit(1)
-
 
     def processWordleData(self):
         self.total_green = 0
@@ -182,7 +185,8 @@ class WordleData():
                 try:
                     self.cursor.execute(query)
                 except Exception as e:
-                    Utils.logError(str(e), PROGRAM_NAME)
+                    msg = "Error in processWordleData executing:\n" + query
+                    Utils.logError(msg, PROGRAM_NAME, str(e))
                     exit(1)
             count += 1
         #Game data and global stat update
@@ -195,7 +199,8 @@ class WordleData():
         try:
             self.cursor.execute(query)
         except Exception as e:
-            Utils.logError(str(e), PROGRAM_NAME)
+            msg = "Error in processWordleData executing:\n" + query
+            Utils.logError(msg, PROGRAM_NAME, str(e))
             exit(1)
         self.updateGlobalData()
         self.con.commit()
@@ -228,7 +233,7 @@ class Wordle():
             arg = args[0]
             if arg.lower() == 'help':
                 return 2
-            elif arg.lower() == 'guild':
+            elif arg.lower() == 'server':
                 ws = WordleStat(1, ctx)
                 return await ws.routeCommand()
             elif arg.isnumeric():
@@ -267,7 +272,7 @@ class WordleStat():
             return await self.wordleNumStat()
         else:
             msg = 'WordleStat recieved bad arguments'
-            Utils.logError(msg, PROGRAM_NAME)
+            Utils.logError(msg, PROGRAM_NAME, 'None')
             return 1
         return 0
 
@@ -276,7 +281,21 @@ class WordleStat():
         try:
             res = self.cursor.execute(query)
         except Exception as e:
-            Utils.logError(str(e), PROGRAM_NAME)
+            msg = "Error in wordleNumStat executing:\n" + query
+            Utils.logError(msg, PROGRAM_NAME, str(e))
+            exit(1)
+        self.results = res.fetchall()
+        if await self.generateWordleNumStatImg():
+            return 0
+        return 1
+    
+    async def wordleServerStat(self):
+        query = 'SELECT * FROM T_WORDLE_GLOBAL_STAT WHERE user_id in ( ' + self.getGuildMembers() + ') ORDER BY average ASC'
+        try:
+            res = self.cursor.execute(query)
+        except Exception as e:
+            msg = "Error in wordleServerStat executing:\n" + query
+            Utils.logError(msg, PROGRAM_NAME, str(e))
             exit(1)
         self.results = res.fetchall()
         if await self.generateWordleNumStatImg():
@@ -334,9 +353,9 @@ class WordleStat():
             await self.ctx.channel.send(file=discord.File(statImgName))
             os.remove(statImgName)
             return True
-        except:
+        except Exception as e:
             msg = 'WordleStat failed to generate image'
-            Utils.logError(msg, PROGRAM_NAME)
+            Utils.logError(msg, PROGRAM_NAME, str(e))
             return False
 
     def getGuildMembers(self):
@@ -365,5 +384,5 @@ class WordleStat():
                     timeStr = str(hours) + ':' + rawTime[2:4] + ':' + rawTime[4:6] + ' AM'
                 else:
                     msg = "Error in formatTime - Bad string passed."
-                    Utils.logError(msg, PROGRAM_NAME)
+                    Utils.logError(msg, PROGRAM_NAME, 'None')
             return timeStr 
