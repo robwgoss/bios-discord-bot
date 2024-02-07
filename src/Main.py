@@ -19,7 +19,6 @@ from configparser import ConfigParser
 from Roll import Roll
 from Wordle import Wordle
 
-
 #=====================================================================
 #=                         Initialization                            =
 #=====================================================================

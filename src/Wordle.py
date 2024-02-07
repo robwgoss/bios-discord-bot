@@ -11,9 +11,12 @@ PROGRAM_NAME = "Wordle.py"
 #                                                        #
 ##########################################################
 
-import re, sqlite3, Utils, discord, io, os
+import re, sqlite3, Utils, discord, io, os, ImageGenHelper
 from PIL import Image, ImageDraw, ImageFont
 from datetime import datetime, date
+
+BIOS_GREEN = (32, 194, 14)
+TERMINAL_FONT = "../assets/terminalFont.ttf"
 
 ##########################################################
 #                                                        #
@@ -282,62 +285,27 @@ class WordleStat():
 
     async def generateWordleNumStatImg(self):
         try:
-            picWidth = 1500
             picHeight = 1600 - (170 * (5 - len(self.results)))
-            image = Image.new(mode="RGBA", size=(picWidth, picHeight), color = (0, 0, 0))
-            draw = ImageDraw.Draw(image)
-            #Header
-            font = ImageFont.truetype("../assets/terminalFont.ttf", size=120)
             header = "> Stats for Wordle [" + str(self.wordleNum) + "]\n========================="
-            draw.text((145,100), header, font=font, fill = (32, 194, 14))
-            #Server Text
-            font = ImageFont.truetype("../assets/terminalFont.ttf", size=80)
-            guildName = self.ctx.guild.name
-            if len(guildName) > 20:
-                guildName = guildName[0:20]
-            guildLine = "\nServer Leaderboard\n------------------\n" + guildName + "\n------------------"
-            guildLine += "\n\n~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~"
-            draw.text((150,300), guildLine, font=font, fill = (32, 194, 14))
-
-            #Server Image - Note check if no image
-            imageBytes = await self.ctx.guild.icon.read()
-            guildIcon = Image.open(io.BytesIO(imageBytes))
-            guildIcon = guildIcon.resize((260,260))
-            x = 1030
-            y = 310
-            draw.rectangle([(x, y), (x + 300, y + 300)], fill = (32, 194, 14))
-            image.paste(guildIcon, (x + 20, y + 20))
+            image = await ImageGenHelper.generateGenericServerHeader(header, picHeight, self.ctx)
+            draw = ImageDraw.Draw(image)
             #Stats
             if len(self.results) == 0:
-                font = ImageFont.truetype("../assets/terminalFont.ttf", size=120)
+                font = ImageFont.truetype(TERMINAL_FONT, size=120)
                 noData = "- NO DATA FOUND -"
-                draw.text((325,800), noData, font=font, fill = (32, 194, 14))
+                draw.text((325,800), noData, font=font, fill = BIOS_GREEN)
             else:
                 y = 775
                 count = 1
-                font = ImageFont.truetype("../assets/terminalFont.ttf", size=60)
+                font = ImageFont.truetype(TERMINAL_FONT, size=60)
                 for result in self.results:
-                    #Generate place, avatar, and name for user
-                    x = 50
-                    place = str(count) + '.'
-                    draw.text((x, y), place, font=font, fill = (32, 194, 14))
-                    userId = result[0]
-                    member = await self.ctx.guild.fetch_member(int(userId))
-                    imageBytes = await member.avatar.read()
-                    authorAvatar = Image.open(io.BytesIO(imageBytes))
-                    authorAvatar = authorAvatar.resize((80,80))
-                    draw.rectangle([(x + 110, y - 25), (x + 220, y + 85)], fill = self.getPlaceColorRgb(count))
-                    image.paste(authorAvatar, (x + 125, y - 10))
-                    name = member.display_name
-                    if len(name) >= 25:
-                        name = name[0:24]
-                        name += '-'
-                    while len(name) < 25 :
-                        name += ' '
-                    name = name + ' ' + str(result[2]) + '/6'
-                    draw.text((x + 280, y), name, font=font, fill = (32, 194, 14))
+                    #Draw user placement, user info and score
+                    x = 975
+                    image = await ImageGenHelper.drawLeaderboardUser(y, count, image, result[0], self.ctx)
+                    score = str(result[2]) + "/6"
+                    draw.text((x, y), score, font=font, fill = BIOS_GREEN)
                     #Visualized stats
-                    x = 1075
+                    x += 100
                     green = int(result[3])
                     yellow = int(result[4])
                     red = int(result[5])
@@ -347,7 +315,7 @@ class WordleStat():
                     red = int(80 - (80 * (red / maxMoves)))
                     statY = y - 20
 
-                    draw.rectangle([(x, statY + green), (x + 20, statY + 80)], fill = (32, 194, 14))
+                    draw.rectangle([(x, statY + green), (x + 20, statY + 80)], fill = BIOS_GREEN)
                     draw.rectangle([(x + 21, statY + yellow), (x + 40, statY + 80)], fill = (255, 234, 0))
                     draw.rectangle([(x + 41, statY + red), (x + 60, statY + 80)], fill = (255, 0, 30))
                     #Time
@@ -355,8 +323,8 @@ class WordleStat():
                     dateRaw = str(result[7])
                     dateStr = dateRaw[0:4] + '/' + dateRaw[4:6] + '/' + dateRaw[6:8]
                     timeStr = dateStr + '\n' + self.formatTime(str(result[8]))
-                    font = ImageFont.truetype("../assets/terminalFont.ttf", size=60)
-                    draw.text((x, y - 30), timeStr, font=font, fill = (32, 194, 14))
+                    font = ImageFont.truetype(TERMINAL_FONT, size=60)
+                    draw.text((x, y - 30), timeStr, font=font, fill = BIOS_GREEN)
                     #Increment
                     y += 170
                     count += 1
@@ -370,24 +338,12 @@ class WordleStat():
             msg = 'WordleStat failed to generate image'
             Utils.logError(msg, PROGRAM_NAME)
             return False
-        
-    def getPlaceColorRgb(self, place):
-        if place == 1:
-            color = (239, 169, 0)
-        elif place == 2:
-            color = (167, 167, 173)
-        elif place == 3:
-            color = (130, 74, 2)
-        else:
-            color = (32, 194, 14)
-        return color
 
     def getGuildMembers(self):
         memberStr = ''
         for member in self.ctx.guild.members:
             memberStr += '' + str(member.id) + ','
         return memberStr[0:len(memberStr) - 1]
-
 
     def formatTime(self, rawTime):
             timeStr = ''
