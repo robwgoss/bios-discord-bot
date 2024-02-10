@@ -267,7 +267,7 @@ class WordleStat():
         if self.commandInd == 0:
             print("Default user stats")
         elif self.commandInd == 1:
-            print("Wordle stats for users in channel")
+            return await self.wordleServerStat()
         elif self.commandInd == 2:
             return await self.wordleNumStat()
         else:
@@ -290,7 +290,7 @@ class WordleStat():
         return 1
     
     async def wordleServerStat(self):
-        query = 'SELECT * FROM T_WORDLE_GLOBAL_STAT WHERE user_id in ( ' + self.getGuildMembers() + ') ORDER BY average ASC'
+        query = 'SELECT * FROM T_WORDLE_GLOBAL_STAT WHERE user_id in ( ' + self.getGuildMembers() + ') AND total_games >= 5 ORDER BY average ASC LIMIT 5'
         try:
             res = self.cursor.execute(query)
         except Exception as e:
@@ -298,15 +298,16 @@ class WordleStat():
             Utils.logError(msg, PROGRAM_NAME, str(e))
             exit(1)
         self.results = res.fetchall()
-        if await self.generateWordleNumStatImg():
+        if await self.generateWordleServerStatImg():
             return 0
         return 1
 
     async def generateWordleNumStatImg(self):
         try:
+            picWidth = 1500
             picHeight = 1600 - (170 * (5 - len(self.results)))
             header = "> Stats for Wordle [" + str(self.wordleNum) + "]\n========================="
-            image = await ImageGenHelper.generateGenericServerHeader(header, picHeight, self.ctx)
+            image = await ImageGenHelper.generateGenericServerHeader(header, picWidth, picHeight, 0, self.ctx)
             draw = ImageDraw.Draw(image)
             #Stats
             if len(self.results) == 0:
@@ -323,7 +324,7 @@ class WordleStat():
                     image = await ImageGenHelper.drawLeaderboardUser(y, count, image, result[0], self.ctx)
                     score = str(result[2]) + "/6"
                     draw.text((x, y), score, font=font, fill = BIOS_GREEN)
-                    #Visualized stats
+                    #Visualized colors
                     x += 100
                     green = int(result[3])
                     yellow = int(result[4])
@@ -358,11 +359,82 @@ class WordleStat():
             Utils.logError(msg, PROGRAM_NAME, str(e))
             return False
 
+    async def generateWordleServerStatImg(self):
+        try:
+            picWidth = 1800
+            picHeight = 1650 - (170 * (5 - len(self.results)))
+            header = "> All Time Wordle Stats\n========================="
+            image = await ImageGenHelper.generateGenericServerHeader(header, picWidth, picHeight, 125, self.ctx)
+            draw = ImageDraw.Draw(image)
+            #Stats
+            if len(self.results) == 0:
+                font = ImageFont.truetype(TERMINAL_FONT, size=120)
+                noData = "- NO DATA FOUND -"
+                draw.text((325,800), noData, font=font, fill = BIOS_GREEN)
+            else:
+                x = 980
+                y = 730
+                count = 1
+
+                font = ImageFont.truetype(TERMINAL_FONT, size=45)
+                dataHeader = "Average    Colors    Solved    Last Game"
+                draw.text((x, y), dataHeader, font=font, fill = BIOS_GREEN)
+
+                font = ImageFont.truetype(TERMINAL_FONT, size=60)
+                y += 100
+                for result in self.results:
+                    #Draw user placement, user info and score
+                    x = 975
+                    image = await ImageGenHelper.drawLeaderboardUser(y, count, image, result[0], self.ctx)
+                    average = result[6]
+                    draw.text((x, y), str(average), font=font, fill = BIOS_GREEN)
+
+                    #Visualized colors
+                    x += 240
+                    green = int(result[3])
+                    yellow = int(result[4])
+                    red = int(result[5])
+                    maxMoves = max(green, yellow, red)
+                    green = int(80 - (80 * (green / maxMoves)))
+                    yellow = int(80 - (80 * (yellow / maxMoves)))
+                    red = int(80 - (80 * (red / maxMoves)))
+                    statY = y - 20
+
+                    draw.rectangle([(x, statY + green), (x + 20, statY + 80)], fill = BIOS_GREEN)
+                    draw.rectangle([(x + 21, statY + yellow), (x + 40, statY + 80)], fill = (255, 234, 0))
+                    draw.rectangle([(x + 41, statY + red), (x + 60, statY + 80)], fill = (255, 0, 30))
+                    #Remaining Data
+                    x += 185
+                    solved = result[7]
+                    draw.text((x, y), str(solved), font=font, fill = BIOS_GREEN)
+
+                    x += 120
+                    date = self.formatDate(result[9])
+                    draw.text((x, y), date, font=font, fill = BIOS_GREEN)
+                    #Increment
+                    y += 170
+                    count += 1
+            #Send picture to ctx channel
+            statImgName = '../tmp/' + str(self.ctx.guild.id) + '_wordleServerStat.png'
+            image.save(statImgName)
+            await self.ctx.channel.send(file=discord.File(statImgName))
+            os.remove(statImgName)
+            return True
+        except Exception as e:
+            msg = 'WordleServerStat failed to generate image'
+            Utils.logError(msg, PROGRAM_NAME, str(e))
+            return False
+
     def getGuildMembers(self):
         memberStr = ''
         for member in self.ctx.guild.members:
             memberStr += '' + str(member.id) + ','
         return memberStr[0:len(memberStr) - 1]
+    
+    def formatDate(self, rawDate):
+        rawDate = str(rawDate)
+        newDate = rawDate[4:6] + "/" + rawDate[6:8] + "/" + rawDate[0:4]
+        return newDate
 
     def formatTime(self, rawTime):
             timeStr = ''

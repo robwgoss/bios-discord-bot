@@ -15,14 +15,14 @@ from PIL import Image, ImageDraw, ImageFont
 
 BIOS_ICON = '../assets/bios_icon.png'
 
-async def generateGenericServerHeader(header, height, ctx):
+async def generateGenericServerHeader(header, width, height, offset, ctx):
     try:
-        picWidth = 1500
-        image = Image.new(mode="RGBA", size=(picWidth, height), color = (0, 0, 0))
+        x = 145 + offset
+        image = Image.new(mode="RGBA", size=(width, height), color = (0, 0, 0))
         draw = ImageDraw.Draw(image)
         #Header
         font = ImageFont.truetype("../assets/terminalFont.ttf", size=120)
-        draw.text((145,100), header, font=font, fill = (32, 194, 14))
+        draw.text((x,100), header, font=font, fill = (32, 194, 14))
         #Server Text
         font = ImageFont.truetype("../assets/terminalFont.ttf", size=80)
         guildName = ctx.guild.name
@@ -30,14 +30,14 @@ async def generateGenericServerHeader(header, height, ctx):
             guildName = guildName[0:20]
         guildLine = "\nServer Leaderboard\n------------------\n" + guildName + "\n------------------"
         guildLine += "\n\n~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~"
-        draw.text((150,300), guildLine, font=font, fill = (32, 194, 14))
+        draw.text((x + 5, 300), guildLine, font=font, fill = (32, 194, 14))
         try:
             imageBytes = await ctx.guild.icon.read()
             guildIcon = Image.open(io.BytesIO(imageBytes))
         except:
             guildIcon = Image.open(BIOS_ICON)
         guildIcon = guildIcon.resize((260,260))
-        x = 1030
+        x = 1030 + offset
         y = 310
         draw.rectangle([(x, y), (x + 300, y + 300)], fill = (32, 194, 14))
         image.paste(guildIcon, (x + 20, y + 20))
