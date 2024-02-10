@@ -12,7 +12,7 @@ PROGRAM_NAME = "Main.py"
 #                                                        #
 ##########################################################
 
-import discord
+import discord, Utils
 from discord.ext import commands
 from Messages import RouteMessage
 from configparser import ConfigParser
@@ -71,8 +71,9 @@ async def rollTwenty(ctx, *args):
             msg = "Your arguments are not valid. Here are examples on how to use this command\n`~roll` *A 1d20 roll*\n`~roll 3d5` *Rolls 3 5 sided dice*\n`~roll 3 5 10` *Rolls 3 random numbers between 5 and 10*"
             await ctx.send(msg)
             return
-    except:
-        print("Critical error occured. Results passed - " + str(results))
+    except Exception as e:
+        msg = "Critical error occured. Results passed - " + str(results)
+        Utils.logError(msg, PROGRAM_NAME, str(e))
 
 #=====================================================================
 #=                          Events                                   =

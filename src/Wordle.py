@@ -11,7 +11,7 @@ PROGRAM_NAME = "Wordle.py"
 #                                                        #
 ##########################################################
 
-import re, sqlite3, Utils, discord, io, os, ImageGenHelper
+import re, Utils, discord, os, ImageGenHelper
 from PIL import Image, ImageDraw, ImageFont
 from datetime import datetime, date
 
@@ -33,7 +33,7 @@ class WordleData():
         self.authorID = msg.author.id
         self.content = msg.content
         self.splitArr = self.content.splitlines()
-        self.con = sqlite3.connect("../data/botProd.db")
+        self.con = Utils.ConnectDB()
         self.cursor = self.con.cursor()
         self.today = date.today()
         self.now = datetime.now()        
@@ -260,7 +260,7 @@ class WordleStat():
         self.commandInd = commandInd
         self.ctx = ctx
         self.wordleNum = wordleNum
-        self.con = sqlite3.connect("../data/botProd.db")
+        self.con = Utils.ConnectDB()
         self.cursor = self.con.cursor()
 
     async def routeCommand(self):
