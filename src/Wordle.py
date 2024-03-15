@@ -228,16 +228,25 @@ class WordleData():
 class Wordle():
     async def processArgs(self, args, ctx):
         if len(args) == 0:
-            return WordleStat(0, ctx)
-        elif len(args) == 1:
-            arg = args[0]
-            if arg.lower() == 'help':
+            return WordleStat(0, ctx, 0)
+        elif len(args) > 0:
+            option = args[0]
+            if option.lower() == 'help':
                 return 2
-            elif arg.lower() == 'server':
-                ws = WordleStat(1, ctx)
+            elif option.lower() == 'server':
+                mod = 1
+                if len(args) == 2:
+                    if not args[1].isnumeric():
+                        return 3
+                    mod = int(args[1])
+                    if mod < 1:
+                        return 3
+                elif len(args) > 2:
+                    return 3
+                ws = WordleStat(1, ctx, mod)
                 return await ws.routeCommand()
-            elif arg.isnumeric():
-                wordleNum = int(arg)
+            elif option.isnumeric():
+                wordleNum = int(option)
                 if wordleNum < 1 or wordleNum > 2000:
                     return 3
                 else:
@@ -245,8 +254,6 @@ class Wordle():
                     return await ws.routeCommand()
             else:
                 return 3
-        else:
-            return 3
 ##########################################################
 #                                                        #
 #   Class            WordleStat()                        #
@@ -256,10 +263,11 @@ class Wordle():
 #                                                        #
 ##########################################################
 class WordleStat():
-    def __init__(self, commandInd, ctx, wordleNum=''):
+    def __init__(self, commandInd, ctx, modifier):
         self.commandInd = commandInd
         self.ctx = ctx
-        self.wordleNum = wordleNum
+        self.modifer = modifier
+        self.wordleNum = modifier
         self.con = Utils.ConnectDB()
         self.cursor = self.con.cursor()
 

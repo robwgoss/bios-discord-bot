@@ -48,7 +48,8 @@ async def wordle(ctx, *args):
         msg = ''
         if response == 3:
             msg += 'Your arguments are not valid.\n'
-        msg = 'Here are examples on how to use this command\n`~wordle stats` *Personal Wordle stats*\n`~wordle 951` *Guild stats for Wordle 951*'
+        msg = 'Here are examples on how to use this command\n`~wordle stats` *Personal Wordle stats*\n`~wordle 951` *Guild stats for Wordle 951*\n'
+        msg += '`~wordle server 1` *Stats for the Server\'s users. [1] is the optional page number.*'
         await ctx.send(msg)
         return
 
