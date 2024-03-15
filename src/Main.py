@@ -12,13 +12,12 @@ PROGRAM_NAME = "Main.py"
 #                                                        #
 ##########################################################
 
-import discord
+import discord, Utils
 from discord.ext import commands
 from Messages import RouteMessage
 from configparser import ConfigParser
 from Roll import Roll
 from Wordle import Wordle
-
 
 #=====================================================================
 #=                         Initialization                            =
@@ -49,7 +48,8 @@ async def wordle(ctx, *args):
         msg = ''
         if response == 3:
             msg += 'Your arguments are not valid.\n'
-        msg = 'Here are examples on how to use this command\n`~wordle stats` *Personal Wordle stats*\n`~wordle 951` *Guild stats for Wordle 951*'
+        msg = 'Here are examples on how to use this command\n`~wordle stats` *Personal Wordle stats*\n`~wordle 951` *Guild stats for Wordle 951*\n'
+        msg += '`~wordle server 1` *Stats for the Server\'s users. [1] is the optional page number.*'
         await ctx.send(msg)
         return
 
@@ -72,8 +72,9 @@ async def rollTwenty(ctx, *args):
             msg = "Your arguments are not valid. Here are examples on how to use this command\n`~roll` *A 1d20 roll*\n`~roll 3d5` *Rolls 3 5 sided dice*\n`~roll 3 5 10` *Rolls 3 random numbers between 5 and 10*"
             await ctx.send(msg)
             return
-    except:
-        print("Critical error occured. Results passed - " + str(results))
+    except Exception as e:
+        msg = "Critical error occured. Results passed - " + str(results)
+        Utils.logError(msg, PROGRAM_NAME, str(e))
 
 #=====================================================================
 #=                          Events                                   =

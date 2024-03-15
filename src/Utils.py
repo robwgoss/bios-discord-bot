@@ -9,18 +9,23 @@ PROGRAM_NAME = "Utils.py"
 ##########################################################
 
 import sqlite3
+from configparser import ConfigParser
 
-def ConnectDB(env):
+def ConnectDB():
     try:
-        connectStr = "../data/bot" + env + ".db"
-        con = sqlite3.connect(connectStr)
-        return con.cursor()
-    except:
-        print("FAILURE")
+        config = ConfigParser()
+        config.read('../config/bot.cfg')
+        connectStr = config.get('discord', 'DB_PATH')
+        return sqlite3.connect(connectStr)
+    except Exception as e:
+        msg = "Failed to connect to database"
+        logError(msg, PROGRAM_NAME, str(e))
         return False
 
-def logError(msg, program_name):
+def logError(msg, program_name, exception):
     msg = "Error in " + program_name + " - " + msg
+    msg += '\n------------------------------------\n'
+    msg += 'Exception\n==========\n' + exception
     print(msg)
 
 def cleanMember(author):
