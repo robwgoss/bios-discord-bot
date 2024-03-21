@@ -54,7 +54,7 @@ class WordleData():
 
     def validateWordle(self):
         #Validates Wordle Header format of "Wordle xxx x/6"
-        searchString = "^(Wordle)\s\d+\s.[/]{1}(6)\n"
+        searchString = "^(Wordle)\s\d+(,\d+)?\s.[/]{1}(6)\n"
         valid = re.search(searchString, self.content)
         if not valid:
             return False
@@ -95,10 +95,10 @@ class WordleData():
                     toggle = 0
                 else:
                     toggle = 1
-        return num.strip()
+        return num.replace(",", "").strip()
 
     def updateGlobalData(self):
-        self.globalDteLastGame = str(self.today.strftime("%Y%m%d"))
+        globalDteLastGame = str(self.today.strftime("%Y%m%d"))
         #Get user's global stats or add new record
         query = 'SELECT * FROM T_WORDLE_GLOBAL_STAT WHERE user_id = ' + str(self.authorID)
         try:
@@ -108,19 +108,19 @@ class WordleData():
             Utils.logError(msg, PROGRAM_NAME, str(e))
             exit(1)
         results = res.fetchall()
+        globalTotalMoves = 0
+        globalTotalGames = 0
+        globalTotalGreen = 0
+        globalTotalYellow = 0
+        globalTotalMiss = 0
+        globalAverage = 0
+        globalTotalSolved = 0
+        globalWinRate = 0
         if(len(results) == 0):
-            self.globalTotalMoves = 0
-            self.globalTotalGames = 0
-            self.globalTotalGreen = 0
-            self.globalTotalYellow = 0
-            self.globalTotalMiss = 0
-            self.globalAverage = 0
-            self.globalTotalSolved = 0
-            self.globalWinRate = 0
             query = """
                 INSERT INTO T_WORDLE_GLOBAL_STAT VALUES(%s,%s,%s,%s,%s,%s,%s,%s,%s,%s)
-            """ % (self.authorID, self.globalTotalMoves, self.globalTotalGames, self.globalTotalGreen,
-                    self.globalTotalYellow, self.globalTotalMiss, self.globalAverage,  self.globalTotalSolved, self.globalWinRate, self.globalDteLastGame)
+            """ % (self.authorID, globalTotalMoves, globalTotalGames, globalTotalGreen,
+                    globalTotalYellow, globalTotalMiss, globalAverage,  globalTotalSolved, globalWinRate, globalDteLastGame)
             try:
                 self.cursor.execute(query)
             except Exception as e:
@@ -129,25 +129,25 @@ class WordleData():
                 exit(1)
             self.con.commit()
         else:
-            self.globalTotalMoves = int(results[0][1])
-            self.globalTotalGames = int(results[0][2])
-            self.globalTotalGreen = int(results[0][3])
-            self.globalTotalYellow = int(results[0][4])
-            self.globalTotalMiss = int(results[0][5])
-            self.globalTotalSolved = int(results[0][7])
+            globalTotalMoves = int(results[0][1])
+            globalTotalGames = int(results[0][2])
+            globalTotalGreen = int(results[0][3])
+            globalTotalYellow = int(results[0][4])
+            globalTotalMiss = int(results[0][5])
+            globalTotalSolved = int(results[0][7])
         #Update global stats with new game data
-        self.globalTotalMoves += self.totalMoves
-        self.globalTotalGames += 1
-        self.globalTotalGreen += self.total_green
-        self.globalTotalYellow += self.total_yellow
-        self.globalTotalMiss += self.total_miss
-        self.globalAverage = self.globalTotalMoves / self.globalTotalGames
-        self.globalTotalSolved += self.solved
-        self.globalWinRate = self.globalTotalSolved / self.globalTotalGames
+        globalTotalMoves += self.totalMoves
+        globalTotalGames += 1
+        globalTotalGreen += self.total_green
+        globalTotalYellow += self.total_yellow
+        globalTotalMiss += self.total_miss
+        globalAverage = globalTotalMoves / globalTotalGames
+        globalTotalSolved += self.solved
+        globalWinRate = globalTotalSolved / globalTotalGames
         query = """
             UPDATE T_WORDLE_GLOBAL_STAT SET total_moves = %s, total_games = %s, total_green = %s, total_yellow = %s, total_miss = %s, average = %s, total_solved = %s, win_rate = %s, dte_last_game = %s WHERE user_id = %s
-        """ % (self.globalTotalMoves, self.globalTotalGames, self.globalTotalGreen, self.globalTotalYellow, self.globalTotalMiss, format(self.globalAverage, '.4f'), self.globalTotalSolved, format(self.globalWinRate, '.4f'),
-                self.globalDteLastGame, self.authorID)
+        """ % (globalTotalMoves, globalTotalGames, globalTotalGreen, globalTotalYellow, globalTotalMiss, format(globalAverage, '.4f'), globalTotalSolved, format(globalWinRate, '.4f'),
+                globalDteLastGame, self.authorID)
         try:
             self.cursor.execute(query)
         except Exception as e:
@@ -247,7 +247,7 @@ class Wordle():
                 return await ws.routeCommand()
             elif option.isnumeric():
                 wordleNum = int(option)
-                if wordleNum < 1 or wordleNum > 2000:
+                if wordleNum < 1 or wordleNum > 9999:
                     return 3
                 else:
                     ws = WordleStat(2, ctx, wordleNum)
