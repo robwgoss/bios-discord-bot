@@ -310,6 +310,37 @@ class WordleStat():
             return 0
         return 1
 
+    async def wordleWeightedAvg(self):
+        queryMax = 'SELECT MAX(total_games) FROM T_WORDLE_GLOBAL_STAT where user_id in ( ' + self.getGuildMembers() + ')'
+        try:
+            resMax = self.cursor.execute(queryMax)
+        except Exception as e:
+            msg = "Unable to get who played the most games:\n" + queryMax
+            Utils.logError(msg, PROGRAM_NAME, str(e))
+            exit(1)
+        maxGamesList = resMax.fetchall()
+        maxGames = maxGamesList[0]
+        query = 'SELECT * FROM T_WORDLE_GLOBAL_STAT WHERE user_id in ( ' + self.getGuildMembers() + ') ORDER BY average ASC'
+        try:
+            res = self.cursor.execute(query)
+        except Exception as e:
+            msg = "Unable to fetch data from T_WORDLE_GLOBAL_STAT in wordleWeightedAvg:\n" + query
+            Utils.logError(msg, PROGRAM_NAME, str(e))
+            exit(1)
+        wordleData = res.fetchall()
+        for row in wordleData:
+            if row[2] < maxGames:
+                diff = maxGames - row[2]
+                addMoves = diff * 6
+                row[1] += addMoves
+                row[6] = row[1] / maxGames
+        sort_by_avg = sorted(wordleData, key=lambda tup: tup[6])
+        topFive = sort_by_avg[:5]
+        self.results = topFive
+        if await self.generateWordleServerStatImg():
+            return 0
+        return 1
+
     async def generateWordleNumStatImg(self):
         try:
             picWidth = 1500
