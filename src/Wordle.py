@@ -325,7 +325,8 @@ class WordleStat():
             Utils.logError(msg, PROGRAM_NAME, str(e))
             exit(1)
         maxGamesList = resMax.fetchall()
-        maxGames = maxGamesList[0]
+        maxGames = maxGamesList[0][0]
+        #maxGames = list(maxGamesTup)
         query = 'SELECT * FROM T_WORDLE_GLOBAL_STAT WHERE user_id in ( ' + self.getGuildMembers() + ') ORDER BY average ASC'
         try:
             res = self.cursor.execute(query)
@@ -334,13 +335,15 @@ class WordleStat():
             Utils.logError(msg, PROGRAM_NAME, str(e))
             exit(1)
         wordleData = res.fetchall()
-        for row in wordleData:
-            if row[2] < maxGames:
-                diff = maxGames - row[2]
+        for entry,col in enumerate(wordleData):
+            if col[2] < maxGames:
+                diff = maxGames - col[2]
                 addMoves = diff * 6
-                row[1] += addMoves
-                row[6] = row[1] / maxGames
-        sort_by_avg = sorted(wordleData, key=lambda tup: tup[6])
+                temp = list(wordleData[entry])
+                temp[1] = temp[1] + addMoves
+                temp[6] = format(temp[1] / maxGames, '.4f')
+                wordleData[entry] = tuple(temp)
+        sort_by_avg = sorted(wordleData, key=lambda tup: float(tup[6]))
         topFive = sort_by_avg[:5]
         self.results = topFive
         if await self.generateWordleServerStatImg():
