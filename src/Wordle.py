@@ -236,11 +236,14 @@ class Wordle():
             elif option.lower() == 'server':
                 mod = 1
                 if len(args) == 2:
+                    #Check if number is after 'server'
                     if not args[1].isnumeric():
                         return 3
                     mod = int(args[1])
+                    #verify number greater than or equal to 1
                     if mod < 1:
                         return 3
+                    #Accept only one number for arg
                 elif len(args) > 2:
                     return 3
                 ws = WordleStat(1, ctx, mod)
@@ -252,6 +255,19 @@ class Wordle():
                 else:
                     ws = WordleStat(2, ctx, wordleNum)
                     return await ws.routeCommand()
+            #Option for weighted average
+            elif option.lower() == 'weighted':
+                mod = 1
+                if len(args) == 2:
+                    if not args[1].isnumeric():
+                        return 3
+                    mod = int(args[1])
+                    if mod < 1:
+                        return 3
+                elif len(args) > 2:
+                    return 3
+                ws = WordleStat(3, ctx, mod)
+                return await ws.routeCommand()
             else:
                 return 3
 ##########################################################
@@ -266,7 +282,7 @@ class WordleStat():
     def __init__(self, commandInd, ctx, modifier):
         self.commandInd = commandInd
         self.ctx = ctx
-        self.modifer = modifier
+        self.modifier = modifier
         self.wordleNum = modifier
         self.con = Utils.ConnectDB()
         self.cursor = self.con.cursor()
@@ -278,6 +294,8 @@ class WordleStat():
             return await self.wordleServerStat()
         elif self.commandInd == 2:
             return await self.wordleNumStat()
+        elif self.commandInd == 3:
+            return await self.wordleWeightedAvg()
         else:
             msg = 'WordleStat recieved bad arguments'
             Utils.logError(msg, PROGRAM_NAME, 'None')
@@ -298,7 +316,7 @@ class WordleStat():
         return 1
     
     async def wordleServerStat(self):
-        query = 'SELECT * FROM T_WORDLE_GLOBAL_STAT WHERE user_id in ( ' + self.getGuildMembers() + ') AND total_games >= 5 ORDER BY average ASC LIMIT 5'
+        query = 'SELECT * FROM T_WORDLE_GLOBAL_STAT WHERE user_id in ( ' + self.getGuildMembers() + ') ORDER BY average ASC LIMIT 5'
         try:
             res = self.cursor.execute(query)
         except Exception as e:
@@ -306,7 +324,40 @@ class WordleStat():
             Utils.logError(msg, PROGRAM_NAME, str(e))
             exit(1)
         self.results = res.fetchall()
-        if await self.generateWordleServerStatImg():
+        if await self.generateWordleServerStatImg(True, 1):
+            return 0
+        return 1
+
+    async def wordleWeightedAvg(self):
+        queryMax = 'SELECT MAX(total_games) FROM T_WORDLE_GLOBAL_STAT where user_id in ( ' + self.getGuildMembers() + ')'
+        try:
+            resMax = self.cursor.execute(queryMax)
+        except Exception as e:
+            msg = "Unable to get who played the most games:\n" + queryMax
+            Utils.logError(msg, PROGRAM_NAME, str(e))
+            exit(1)
+        maxGamesList = resMax.fetchall()
+        maxGames = maxGamesList[0][0]
+        query = 'SELECT * FROM T_WORDLE_GLOBAL_STAT WHERE user_id in ( ' + self.getGuildMembers() + ') ORDER BY average ASC'
+        try:
+            res = self.cursor.execute(query)
+        except Exception as e:
+            msg = "Unable to fetch data from T_WORDLE_GLOBAL_STAT in wordleWeightedAvg:\n" + query
+            Utils.logError(msg, PROGRAM_NAME, str(e))
+            exit(1)
+        wordleData = res.fetchall()
+        for entry,col in enumerate(wordleData):
+            if col[2] < maxGames:
+                diff = maxGames - col[2]
+                addMoves = diff * 6
+                temp = list(wordleData[entry])
+                temp[1] = temp[1] + addMoves
+                temp[6] = format(temp[1] / maxGames, '.4f')
+                wordleData[entry] = tuple(temp)
+        sort_by_avg = sorted(wordleData, key=lambda tup: float(tup[6]))
+        topFive = sort_by_avg[:5]
+        self.results = topFive
+        if await self.generateWordleServerStatImg(False, 1):
             return 0
         return 1
 
@@ -367,7 +418,7 @@ class WordleStat():
             Utils.logError(msg, PROGRAM_NAME, str(e))
             return False
 
-    async def generateWordleServerStatImg(self):
+    async def generateWordleServerStatImg(self, server, page):
         try:
             picWidth = 1800
             picHeight = 1650 - (170 * (5 - len(self.results)))
@@ -382,10 +433,13 @@ class WordleStat():
             else:
                 x = 980
                 y = 730
-                count = 1
+                index = 1
 
                 font = ImageFont.truetype(TERMINAL_FONT, size=45)
-                dataHeader = "Average    Colors    Solved    Last Game"
+                if server:
+                    dataHeader = "Average    Colors    Solved    Last Game"
+                else:
+                    dataHeader = "Weighted    Colors    Solved    Last Game"
                 draw.text((x, y), dataHeader, font=font, fill = BIOS_GREEN)
 
                 font = ImageFont.truetype(TERMINAL_FONT, size=60)
@@ -393,7 +447,7 @@ class WordleStat():
                 for result in self.results:
                     #Draw user placement, user info and score
                     x = 975
-                    image = await ImageGenHelper.drawLeaderboardUser(y, count, image, result[0], self.ctx)
+                    image = await ImageGenHelper.drawLeaderboardUser(y, index+(5*(page - 1)), image, result[0], self.ctx)
                     average = result[6]
                     draw.text((x, y), str(average), font=font, fill = BIOS_GREEN)
 
@@ -421,7 +475,7 @@ class WordleStat():
                     draw.text((x, y), date, font=font, fill = BIOS_GREEN)
                     #Increment
                     y += 170
-                    count += 1
+                    index += 1
             #Send picture to ctx channel
             statImgName = '../tmp/' + str(self.ctx.guild.id) + '_wordleServerStat.png'
             image.save(statImgName)
