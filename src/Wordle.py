@@ -252,6 +252,10 @@ class Wordle():
                 else:
                     ws = WordleStat(2, ctx, wordleNum)
                     return await ws.routeCommand()
+            #Option for weighted average
+            elif option.lower() == 'weighted':
+                ws = WordleStat(3, ctx, 1)
+                return await ws.routeCommand()
             else:
                 return 3
 ##########################################################
@@ -278,6 +282,8 @@ class WordleStat():
             return await self.wordleServerStat()
         elif self.commandInd == 2:
             return await self.wordleNumStat()
+        elif self.commandInd == 3:
+            return await self.wordleWeightedAvg()
         else:
             msg = 'WordleStat recieved bad arguments'
             Utils.logError(msg, PROGRAM_NAME, 'None')
