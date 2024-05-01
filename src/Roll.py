@@ -24,8 +24,8 @@ PROGRAM_NAME = "Roll.py"
 #                                                        #                
 ##########################################################
 
-import random, re
-from datetime import datetime
+import random, re, Utils
+from datetime import datetime, date
 class Roll():
     def __init__(self, ctx):
         self.low = 1
@@ -33,6 +33,9 @@ class Roll():
         self.rolls = 1
         self.results = []
         self.ctx = ctx
+        self.authorID = ctx.author.id
+        self.con = Utils.ConnectDB()
+        self.cursor = self.con.cursor()
 
     def setRollCfg(self, args):
         self.args = args
@@ -76,12 +79,7 @@ class Roll():
             return 1
 
     async def roll(self):
-        dt = datetime.now()
-        dt.strftime("%Y%d%H%M%S")
-        newSeed = ""
-        for char in str(dt):
-            if char.isdigit():
-                newSeed += char
+        newSeed = getSeed()
         random.seed(newSeed)
         while self.rolls > 0:
             self.results.append(random.randrange(self.low, self.high))
@@ -117,3 +115,98 @@ class Roll():
                 await self.ctx.send(msg)
             msg = "===========================\nThe sum of your rolls was " + str(sum) + "!\n==========================="
             await self.ctx.send(msg)
+
+    async def setFlipCfg(self, args):
+        if len(args) == 0:
+            return self.setFlipData()
+        elif len(args) == 1:
+            if 'stat' in args[0].lower()  or args[0].lower() == 's':
+                await self.getFlipData()
+                return 2
+        else:
+            return 1
+
+    def setFlipData(self):
+        query = 'SELECT heads, tails, dte_last_flip FROM T_FLIP WHERE user_id = ' + str(self.authorID)
+        try:
+            res = self.cursor.execute(query)
+        except Exception as e:
+            msg = "Error in setFlipData executing:\n" + query
+            Utils.logError(msg, PROGRAM_NAME, str(e))
+            return 1
+        results = res.fetchall()
+        if len(results) == 0:
+            query = 'INSERT INTO T_FLIP VALUES(' + str(self.authorID) + ', 0, 0, 0)'
+            try:
+                res = self.cursor.execute(query)
+            except Exception as e:
+                msg = "Error in setFlipData executing:\n" + query
+                Utils.logError(msg, PROGRAM_NAME, str(e))
+                return 1
+            self.totalHeads = 0
+            self.totalTails = 0
+            self.lastFlip = 0
+            self.con.commit()
+        else:
+            self.totalHeads = int(results[0][0])
+            self.totalTails = int(results[0][1])
+            self.lastFlip =   int(results[0][2])
+        return 0
+
+    async def getFlipData(self):
+        res = self.setFlipData()
+        if res == 1:
+            msg = 'Critical error getting Flip data!'
+            self.ctx.send(msg)
+            return 2
+        if self.lastFlip == 0:
+            msg = 'You have never flipped before! Try now with command: *~flip*'
+            self.ctx.send(msg)
+            return 2
+        total = self.totalHeads + self.totalTails
+        msg = 'You have a total of **' + str(total) + '** flips!\nYour total number of **HEADS** is **' + str(self.totalHeads) + '**, and total number of **TAILS** is **' + str(self.totalTails) + '**!\n'
+        headsPercent = (self.totalHeads / total) * 100
+        tailsPercent = (self.totalTails / total) * 100
+        msg += 'Flips by Percentage:   Heads - ' + str(format(headsPercent, '.1f')) + '%       Tails - ' + str(format(tailsPercent, '.1f'))  + '%'
+        await self.ctx.send(msg)
+        self.cursor.close()
+        return 2
+
+    def updateFlipData(self, roll):
+        if roll == 1:
+            self.totalHeads += 1
+        elif roll == 2:
+            self.totalTails += 1
+        today = date.today()
+        dteLastFlip = str(today.strftime("%Y%m%d"))
+        query = 'UPDATE T_FLIP SET HEADS = ' + str(self.totalHeads) + ', TAILS = ' + str(self.totalTails) + ', DTE_LAST_FLIP = ' + dteLastFlip + ' WHERE USER_ID = ' + str(self.authorID)
+        try:
+            self.cursor.execute(query)
+        except Exception as e:
+            msg = "Error in updateFlipData executing:\n" + query
+            Utils.logError(msg, PROGRAM_NAME, str(e))
+        self.con.commit()
+
+    async def flip(self):
+        newSeed = getSeed()
+        random.seed(newSeed)
+        self.high = 3
+        roll = random.randrange(self.low, self.high)
+
+        msg = self.ctx.message.author.mention + "'s coin has flipped "
+        if roll == 1:
+            msg += "**HEADS!!**"
+        else:
+            msg += "**TAILS!!**"
+        self.updateFlipData(roll)
+        await self.ctx.send(msg)
+        self.cursor.close()
+
+def getSeed():
+    dt = datetime.now()
+    dt.strftime("%Y%d%H%M%S")
+    newSeed = ""
+    for char in str(dt):
+        if char.isdigit():
+            newSeed += char
+    return newSeed
