@@ -76,6 +76,20 @@ async def rollTwenty(ctx, *args):
         msg = "Critical error occured. Results passed - " + str(results)
         Utils.logError(msg, PROGRAM_NAME, str(e))
 
+@bot.command(
+    name='flip',
+    description='Flip a coin!',
+    pass_context=True,
+)    
+async def flip(ctx, *args):
+    r = Roll(ctx)
+    response = await r.setFlipCfg(args)
+    if response == 0:
+        await r.flip()
+    elif response == 1:
+        msg = "Here are examples on how to use this command\n`~flip` *Flip a coin!*\n`~flip stat`*Personal coin flip stats*"
+        await ctx.send(msg)
+
 #=====================================================================
 #=                          Events                                   =
 #=====================================================================
