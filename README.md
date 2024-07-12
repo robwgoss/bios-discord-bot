@@ -21,9 +21,10 @@ The bot will then store the invidual score for the user, along with calclulating
 Commands to play odds
 ### COMMANDS EXAMPLES
 `~flip` Flips a coin and tracks total heads/tails</br>
-`~flip stat` Prints out statistics showing total heads/tails and their 
+`~flip stat` Prints out statistics showing total heads/tails and flips by percentage </br>
 `~roll` Rolls a 1d20 dice</br>
 `~roll 3d5` Rolls a 3d5 dice</br>
+`~roll 2 4 6` Rolls 2 dice with a minimum value of 4 and maximum value of 6</br>
 
 ## Running locally
 To run locally, a config file is needed with the following format: </br>
