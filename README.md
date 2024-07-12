@@ -21,14 +21,15 @@ The bot will then store the invidual score for the user, along with calclulating
 Commands to play odds
 ### COMMANDS EXAMPLES
 `~flip` Flips a coin and tracks total heads/tails</br>
+`~flip stat` Prints out statistics showing total heads/tails and their 
 `~roll` Rolls a 1d20 dice</br>
 `~roll 3d5` Rolls a 3d5 dice</br>
 
 ## Running locally
 To run locally, a config file is needed with the following format: </br>
-[discord]
-key = PLACE-DISCORD-API-KEY-HERE
-DB_PATH = PATH-TO-DB
+[discord]</br>
+key = PLACE-DISCORD-API-KEY-HERE</br>
+DB_PATH = PATH-TO-DB</br>
 
 On the DB_PATH, an sqlite3 DB is needed for the following tables:</br>
 
