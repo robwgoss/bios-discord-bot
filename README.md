@@ -17,6 +17,8 @@ The bot will then store the invidual score for the user, along with calclulating
 `~wordle server` Generates a visual server leaderboard for all time stats on the channel this command was ran in </br>
 `~wordle weighted` This is the same as above, however its weighted on the user with the highest number of games to eliminate low sample sizes taking over the average leaderboard </br>
 `~wordle 951`  Generates a visual server leaderboard for a specific Wordle number on the channel this command was ran in
+`~wordle stat` User stats visualization for the author
+`~wordle stat @user` This is the same as above, but for the mentioned user's stats
 ## ROLL/FLIP
 Commands to play odds
 ### COMMANDS EXAMPLES
