@@ -228,11 +228,18 @@ class WordleData():
 class Wordle():
     async def processArgs(self, args, ctx):
         if len(args) == 0:
-            return WordleStat(0, ctx, 0)
+            ws = WordleStat(0, ctx, 0)
+            return await ws.routeCommand()
         elif len(args) > 0:
             option = args[0]
             if option.lower() == 'help':
                 return 2
+            elif 'stat' in option.lower():
+                mod = 0
+                if len(args) == 2:
+                    mod = args[1]
+                ws = WordleStat(0, ctx, mod)
+                return await ws.routeCommand()
             elif option.lower() == 'server':
                 mod = 1
                 if len(args) == 2:
@@ -284,12 +291,13 @@ class WordleStat():
         self.ctx = ctx
         self.modifier = modifier
         self.wordleNum = modifier
+        self.authorID = ctx.author.id
         self.con = Utils.ConnectDB()
         self.cursor = self.con.cursor()
 
     async def routeCommand(self):
         if self.commandInd == 0:
-            print("Default user stats")
+            return await self.wordleUserStat()
         elif self.commandInd == 1:
             return await self.wordleServerStat()
         elif self.commandInd == 2:
@@ -302,18 +310,41 @@ class WordleStat():
             return 1
         return 0
 
-    async def wordleNumStat(self):
-        query = 'SELECT * FROM T_WORDLE_GAMES WHERE wordle_num = ' + str(self.wordleNum) + ' AND user_id in ( ' + self.getGuildMembers() + ') AND SOLVED = 1 ORDER BY num_moves ASC, dte_game ASC, time_game ASC LIMIT 5'
+    async def wordleUserStat(self):
+        userId = str(self.authorID)
+        if self.modifier != 0:
+            tempId = self.modifier[2:len(self.modifier) - 1]
+            if len(str(tempId)) >= 17 and len(str(tempId)) <= 20:
+                userId = tempId
+        query = "SELECT NUM_MOVES, DTE_GAME FROM T_WORDLE_GAMES WHERE user_id = " + userId + " ORDER BY dte_game desc, time_game desc LIMIT 10"
         try:
             res = self.cursor.execute(query)
         except Exception as e:
-            msg = "Error in wordleNumStat executing:\n" + query
+            msg = "Error in wordleUserStat executing:\n" + query
             Utils.logError(msg, PROGRAM_NAME, str(e))
             exit(1)
-        self.results = res.fetchall()
-        if await self.generateWordleNumStatImg():
+        self.matchHist = res.fetchall()
+        if len(self.matchHist) == 0:
+            self.matchHist = -1
+        query = "SELECT COUNT(WORDLE_NUM), SUM(NUM_MOVES), SUM(SOLVED) FROM T_WORDLE_GAMES WHERE user_id = "  
+        query += str(userId)
+        try:
+            res = self.cursor.execute(query)
+        except Exception as e:
+            msg = "Error in wordleUserStat executing:\n" + query
+            Utils.logError(msg, PROGRAM_NAME, str(e))
+            exit(1)
+        self.userStats = res.fetchone()
+        if str(self.userStats[0]) == '0':
+            self.userStats = -1
+        today = date.today()
+        month = str(today.strftime("%Y%m"))
+        self.currMonth = self.getMonthData(month, userId)
+        self.prevMonth = self.getMonthData(str(int(month) - 1), userId)
+        if await self.generateWordleUserStatImg(userId):
             return 0
         return 1
+
     
     async def wordleServerStat(self):
         query = 'SELECT * FROM T_WORDLE_GLOBAL_STAT WHERE user_id in ( ' + self.getGuildMembers() + ') ORDER BY average ASC LIMIT 5'
@@ -325,6 +356,19 @@ class WordleStat():
             exit(1)
         self.results = res.fetchall()
         if await self.generateWordleServerStatImg(True, 1):
+            return 0
+        return 1
+
+    async def wordleNumStat(self):
+        query = 'SELECT * FROM T_WORDLE_GAMES WHERE wordle_num = ' + str(self.wordleNum) + ' AND user_id in ( ' + self.getGuildMembers() + ') AND SOLVED = 1 ORDER BY num_moves ASC, dte_game ASC, time_game ASC LIMIT 5'
+        try:
+            res = self.cursor.execute(query)
+        except Exception as e:
+            msg = "Error in wordleNumStat executing:\n" + query
+            Utils.logError(msg, PROGRAM_NAME, str(e))
+            exit(1)
+        self.results = res.fetchall()
+        if await self.generateWordleNumStatImg():
             return 0
         return 1
 
@@ -360,6 +404,25 @@ class WordleStat():
         if await self.generateWordleServerStatImg(False, 1):
             return 0
         return 1
+
+    async def generateWordleUserStatImg(self, userId):
+        try:
+            picWidth = 1500
+            picHeight = 1500
+            header = "User stats"
+            image = await ImageGenHelper.generateGenericUserHeader(header, picWidth, picHeight, 0, self.ctx, userId)
+            image = await ImageGenHelper.drawUserMatchHist(self.ctx, image, self.matchHist)
+            image = await ImageGenHelper.drawUserStats(self.ctx, image, self.userStats, self.currMonth, self.prevMonth)
+            draw = ImageDraw.Draw(image)
+            statImgName = '../tmp/' + str(self.ctx.guild.id) + '_wordleUsereStat' + '.png'
+            image.save(statImgName)
+            await self.ctx.channel.send(file=discord.File(statImgName))
+            os.remove(statImgName)
+            return True
+        except Exception as e:
+            msg = 'WordleStat failed to generate image'
+            Utils.logError(msg, PROGRAM_NAME, str(e))
+            return False
 
     async def generateWordleNumStatImg(self):
         try:
@@ -520,3 +583,17 @@ class WordleStat():
                     msg = "Error in formatTime - Bad string passed."
                     Utils.logError(msg, PROGRAM_NAME, 'None')
             return timeStr 
+
+    def getMonthData(self, month, userId):
+        query = "SELECT COUNT(WORDLE_NUM), SUM(NUM_MOVES) FROM T_WORDLE_GAMES WHERE user_id = " + str(userId) + " AND DTE_GAME LIKE '" + month + "%'"
+        try:
+            res = self.cursor.execute(query)
+        except Exception as e:
+            msg = "Error in wordleUserStat executing:\n" + query
+            Utils.logError(msg, PROGRAM_NAME, str(e))
+            exit(1)
+        stats = res.fetchone()
+        if str(stats[0]) == '0':
+            stats = -1
+        return stats
+
