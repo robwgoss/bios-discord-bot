@@ -90,6 +90,16 @@ async def flip(ctx, *args):
         msg = "Here are examples on how to use this command\n`~flip` *Flip a coin!*\n`~flip stat`*Personal coin flip stats*"
         await ctx.send(msg)
 
+@bot.command(
+        name='qp',
+        description='Make a quick poll',
+        pass_context=True,
+)
+async def qp(ctx, *args):
+    msg = ctx.message
+    await msg.add_reaction('❌')
+    await msg.add_reaction('✅')
+    
 #=====================================================================
 #=                          Events                                   =
 #=====================================================================
