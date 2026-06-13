@@ -170,7 +170,6 @@ async def drawUserStats(ctx, image, userStats, currMonth, prevMonth):
     x += 430
     text = "Current Month"
     if currMonth != -1:
-        print('test')
         currGames = int(currMonth[0])
         currScore = int(currMonth[1])
         currAvg = str(format(currScore / currGames, '.2f'))
