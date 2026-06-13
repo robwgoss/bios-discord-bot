@@ -18,6 +18,7 @@ from Messages import RouteMessage
 from configparser import ConfigParser
 from Roll import Roll
 from Wordle import Wordle
+from Music import Music
 
 #=====================================================================
 #=                         Initialization                            =
@@ -25,6 +26,7 @@ from Wordle import Wordle
 intents = discord.Intents.default()
 intents.message_content = True
 intents.members = True
+intents.voice_states = True
 bot = commands.Bot(command_prefix = "~", intents=intents)
 config = ConfigParser()
 config.read('../config/bot.cfg')
@@ -99,6 +101,15 @@ async def qp(ctx, *args):
     msg = ctx.message
     await msg.add_reaction('❌')
     await msg.add_reaction('✅')
+
+@bot.command(
+        name='music',
+        description='Plays a song',
+        pass_context=True,
+)
+async def music(ctx, *args):
+    m = Music(args, ctx)
+    await m.play()
     
 #=====================================================================
 #=                          Events                                   =
