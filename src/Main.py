@@ -16,6 +16,7 @@ import discord, Utils
 from discord.ext import commands
 from Messages import RouteMessage
 from configparser import ConfigParser
+from googleapiclient.discovery import build
 from Roll import Roll
 from Wordle import Wordle
 from Music import Music
@@ -24,13 +25,17 @@ from Music import Music
 #=                         Initialization                            =
 #=====================================================================
 intents = discord.Intents.default()
+
 intents.message_content = True
 intents.members = True
 intents.voice_states = True
+
 bot = commands.Bot(command_prefix = "~", intents=intents)
+
 config = ConfigParser()
 config.read('../config/bot.cfg')
 
+youtube = build("youtube", "v3", developerKey=config.get('youtube', 'key'))
 
 #=====================================================================
 #=                          Commands                                 =
@@ -103,13 +108,13 @@ async def qp(ctx, *args):
     await msg.add_reaction('✅')
 
 @bot.command(
-        name='music',
+        name='play',
         description='Plays a song',
         pass_context=True,
 )
-async def music(ctx, *args):
+async def play(ctx, *args):
     m = Music(args, ctx)
-    await m.play()
+    await m.play(youtube)
     
 #=====================================================================
 #=                          Events                                   =
