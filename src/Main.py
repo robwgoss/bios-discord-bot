@@ -40,6 +40,10 @@ youtube = build("youtube", "v3", developerKey=config.get('youtube', 'key'))
 #=====================================================================
 #=                          Commands                                 =
 #=====================================================================
+
+#==========================#
+#     General Commands     #
+#==========================#
 @bot.command(
     name='wordle',
     description='Wordle stats for a given user',
@@ -107,6 +111,10 @@ async def qp(ctx, *args):
     await msg.add_reaction('❌')
     await msg.add_reaction('✅')
 
+#==========================#
+#      Music Commands      #
+#==========================#
+
 @bot.command(
         name='play',
         description='Plays a song',
@@ -115,7 +123,33 @@ async def qp(ctx, *args):
 async def play(ctx, *args):
     m = Music(args, ctx)
     await m.play(youtube)
+
+@bot.command(
+        name='queue',
+        description='Shows the current queue',
+        pass_context=True,
+)
+async def queue(ctx, *args):
+    m = Music(args, ctx)
+    await m.showQueue()
     
+@bot.command(
+        name='skip',
+        description='Skips the current song',
+        pass_context=True,
+)
+async def skip(ctx, *args):
+    m = Music(args, ctx)
+    await m.skipSong()
+
+@bot.command(
+    name='stop',
+    description='Disconnects the bot',
+    pass_context=True,
+)
+async def stop(ctx, *args):
+    m = Music(args, ctx)
+    await m.stopMusic()
 #=====================================================================
 #=                          Events                                   =
 #=====================================================================

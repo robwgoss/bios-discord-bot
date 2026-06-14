@@ -82,6 +82,7 @@ class Music():
             queueCount = self.checkQueue()
 
             if queueCount == 0:
+                await self.goodbyeBot()
                 return
             else:
                 queueId = self.getQueueId()
@@ -95,7 +96,48 @@ class Music():
                     await self.ctx.send(msg)
                     return
                 inQueue = True
+        await self.goodbyeBot()
+        return
 
+    async def showQueue(self):
+        guildId = self.ctx.guild.id
+        query = 'SELECT URL FROM T_QUEUE WHERE GUILD_ID = ? ORDER BY ROWID ASC LIMIT 5'
+        result = self.cursor.execute(query, (guildId,)).fetchall()
+        if not result:
+            msg = "There are no songs in the queue"
+            await self.ctx.send(msg)
+            return
+        queueCount = self.checkQueue()
+        count = 1
+        msg = f"There are currently **{queueCount}** songs in queue. Upcoming:\n`"
+        for res in result:
+            self.setYtInfo(res[0])
+            minutes = self.songDuration // 60
+            seconds = self.songDuration % 60
+            msg += f"{count}. {self.songTitle} | {self.songChannel} | {minutes}:{seconds:02d}\n"
+            count += 1
+        msg += '`'
+        await self.ctx.send(msg)
+        return
+
+    async def skipSong(self):
+        if not self.ctx.voice_client or not self.ctx.voice_client.is_playing():
+            await self.ctx.send("No song is playing")
+            return
+        self.ctx.voice_client.stop()
+        await self.ctx.send("Skipped the current song")
+        return
+
+    async def stopMusic(self):
+        if not self.ctx.voice_client:
+            await self.ctx.send("Not currently in a voice channel")
+            return
+        guildId = self.ctx.guild.id
+        query = 'DELETE FROM T_QUEUE WHERE GUILD_ID = ?'
+        self.cursor.execute(query, (guildId,))
+        self.con.commit()
+        await self.goodbyeBot()
+        return
 
     def checkYtUrl(self, songName):
         pattern = r"(youtube\.com|youtu\.be)"
@@ -107,7 +149,9 @@ class Music():
           return None
         pattern = r"(youtube\.com/watch\?v=|youtu\.be/)[\w-]+"
         if re.search(pattern, url):
-            return url
+            cleanUrl = re.search(r"(https?://(?:www\.)?(?:youtube\.com/watch\?v=|youtu\.be/)[\w-]+)", url)
+            if cleanUrl:
+                return cleanUrl.group(1)
         return None     
 
     def ytSearch(self, youtube, songName):
@@ -162,6 +206,7 @@ class Music():
             'format': 'bestaudio/best',
             'noplaylist': True,
             'quiet': True,
+            'no_warnings': True,
             'outtmpl': '../data/ytCache/%(id)s.%(ext)s',
             'postprocessors': [{
                 'key': 'FFmpegExtractAudio',
@@ -182,7 +227,7 @@ class Music():
             return None
 
     def setYtInfo(self, url):
-        opts = {'quiet': True}
+        opts = {'quiet': True, 'no_warnings': True}
         try:
             with yt_dlp.YoutubeDL(opts) as ydl:
                 info = ydl.extract_info(url, download=False)
@@ -269,4 +314,10 @@ class Music():
         self.con.commit()
         return True
 
-        
+    async def goodbyeBot(self):
+        if not self.ctx.voice_client:
+            return
+        await self.ctx.voice_client.disconnect()
+        msg = 'Bye bye! ._.'
+        await self.ctx.send(msg)
+        return
