@@ -1,4 +1,4 @@
-PROGRAM_NAME = "Music.py"
+PROGRAM_NAME = "Music.py" 
 
 ##########################################################
 #                                                        #
@@ -9,7 +9,7 @@ PROGRAM_NAME = "Music.py"
 #                                                        #
 ##########################################################
 
-import discord, yt_dlp, re, Utils, asyncio
+import discord, yt_dlp, re, Utils, asyncio, os
 from datetime import datetime, date
 class Music():
     def __init__(self, args, ctx):
@@ -46,16 +46,31 @@ class Music():
                 return
 
         if self.ctx.voice_client and self.ctx.voice_client.is_playing():
-            self.insertQueue(ytUrl)
+            res = await self.insertQueue(ytUrl)
+            if not res:
+                msg = "Failed to add song to queue"
+                await self.ctx.send(msg)
+                return
+            musicFile = await asyncio.get_event_loop().run_in_executor(None, self.ytDownload, ytUrl)
+            if musicFile is None:
+                msg = "Failed to pre-cache queued song"
+                await self.ctx.send(msg)
             return
      
         queueEmpty = False
         inQueue = False
         while queueEmpty is False:
+            if inQueue:
+                res = self.deleteQueue(queueId)
+                if not res:
+                    msg = "Failed to remove song from queue"
+                    await self.ctx.send(msg)
+                    return
+
             musicFile = await asyncio.get_event_loop().run_in_executor(None, self.ytDownload, ytUrl)
             if musicFile is None:
                 msg = "Song retrieval failed. Please try again later"
-                self.ctx.send(msg)
+                await self.ctx.send(msg)
 
             played = await self.playMusic(musicFile)
             if not played:
@@ -63,14 +78,10 @@ class Music():
                 await self.ctx.send(msg)
                 return
 
-            queueEmpty = self.checkQueue()
-            if inQueue:
-                res = self.deleteQueue(queueId)
-                if res is None:
-                    msg = "Failed to remove song from queue"
-                    await self.ctx.send(msg)
-                    return
-            if queueEmpty:
+
+            queueCount = self.checkQueue()
+
+            if queueCount == 0:
                 return
             else:
                 queueId = self.getQueueId()
@@ -83,6 +94,7 @@ class Music():
                     msg = "Failed to retrieve song from queue"
                     await self.ctx.send(msg)
                     return
+                inQueue = True
 
 
     def checkYtUrl(self, songName):
@@ -138,6 +150,7 @@ class Music():
                 options="-vn"
             )
             connection.play(source)
+            await self.nowPlayingMsg()
             while connection.is_playing():
                 await asyncio.sleep(1)
             return True
@@ -157,10 +170,36 @@ class Music():
         }
         try:
             with yt_dlp.YoutubeDL(opts) as ydl:
-                info = ydl.extract_info(url, download=True)
-                return f"../data/ytCache/{info['id']}.mp3"
+                info = ydl.extract_info(url, download=False)
+                self.songTitle = info['title']
+                self.songChannel = info['uploader']
+                self.songDuration = info['duration']
+                cachedFile = f"../data/ytCache/{info['id']}.mp3"
+                if not os.path.exists(cachedFile):
+                    ydl.download([url])
+                return cachedFile
         except Exception as e:
             return None
+
+    def setYtInfo(self, url):
+        opts = {'quiet': True}
+        try:
+            with yt_dlp.YoutubeDL(opts) as ydl:
+                info = ydl.extract_info(url, download=False)
+                self.songTitle = info['title']
+                self.songChannel = info['uploader']
+                self.songDuration = info['duration']
+        except Exception as e:
+            return None
+        
+    async def nowPlayingMsg(self):
+        try:
+            minutes = self.songDuration // 60
+            seconds = self.songDuration % 60
+            msg = f"**Now playing:**\n`>{self.songTitle}\n>{self.songChannel} | {minutes}:{seconds:02d}`"
+            await self.ctx.send(msg)
+        except Exception as e:
+            await self.ctx.send("Failed to retrieve song info")
     
     def checkQueue(self):
         guildId = self.ctx.guild.id
@@ -172,22 +211,30 @@ class Music():
             Utils.logError(msg, PROGRAM_NAME, str(e))
             return
         count = result[0]
-        return count == 0
+        return count
 
-    def insertQueue(self, url):
+    async def insertQueue(self, url):
         guildId = self.ctx.guild.id
         self.setTime()
-        
-        query = """
-                  INSERT INTO T_QUEUE VALUES(%s,%s,%s,%s)
-                """ % (guildId, url, self.day, self.time)
+        self.setYtInfo(url)
+
+        query = "INSERT INTO T_QUEUE (GUILD_ID, URL, DTE_ADDED, TIME_ADDED) VALUES(?,?,?,?)"
         try:
-            self.cursor.execute(query)
+            self.cursor.execute(query, (guildId, url, self.day, self.time))
         except Exception as e:
             msg = "Error in insertQueue executing:\n" + query
             Utils.logError(msg, PROGRAM_NAME, str(e))
-            return
+            return False
+
         self.con.commit()
+
+        minutes = self.songDuration // 60
+        seconds = self.songDuration % 60
+        count = self.checkQueue()
+        msg = f"**Added in queue to position {count}:**\n`>{self.songTitle}\n>{self.songChannel} | {minutes}:{seconds:02d}`"
+        await self.ctx.send(msg)
+    
+        return True
     
     def setTime(self):
         today = date.today()
@@ -218,7 +265,8 @@ class Music():
         except Exception as e:
             msg = "Error in deleteQueue executing:\n" + query
             Utils.logError(msg, PROGRAM_NAME, str(e))
-            return
+            return False
         self.con.commit()
+        return True
 
         
