@@ -167,6 +167,17 @@ async def on_message(message):
     if message.content == "test":
         await message.channel.send("response")
 
+@bot.listen()
+async def on_voice_state_update(member, before, after):
+    if member != bot.user:
+        return
+    if before.channel is not None and after.channel is None:
+        con = Utils.ConnectDB()
+        cursor = con.cursor()
+        if before.channel.guild.id:
+            guildId = before.channel.guild.id
+            cursor.execute('DELETE FROM T_QUEUE WHERE GUILD_ID = ?', (guildId,))
+            con.commit()
 
 #=====================================================================
 #=                          Entry                                    =
