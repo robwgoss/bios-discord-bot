@@ -29,7 +29,6 @@ class Music():
             return
         
         songName = " ".join(self.args)
-
         isUrl = self.checkYtUrl(songName)
 
         if not isUrl:
@@ -76,7 +75,6 @@ class Music():
             if not played:
                 msg = "Failed to play song"
                 await self.ctx.send(msg)
-                return
 
 
             queueCount = self.checkQueue()
