@@ -120,7 +120,8 @@ async def qp(ctx, *args):
         description='Plays a song',
         pass_context=True,
 )
-async def play(ctx, *args):
+async def play(ctx, *, rest=None):
+    args = rest.split() if rest else []
     m = Music(args, ctx)
     await m.play(youtube)
 
@@ -178,6 +179,14 @@ async def on_voice_state_update(member, before, after):
             guildId = before.channel.guild.id
             cursor.execute('DELETE FROM T_QUEUE WHERE GUILD_ID = ?', (guildId,))
             con.commit()
+
+@bot.event
+async def on_command_error(ctx, error):
+    if isinstance(error, commands.UnexpectedQuoteError):
+        # Silently ignore unexpected quote errors (e.g., Japanese bracket characters)
+        return
+    # Let other errors propagate
+    raise error
 
 #=====================================================================
 #=                          Entry                                    =
