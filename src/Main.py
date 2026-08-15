@@ -16,23 +16,34 @@ import discord, Utils
 from discord.ext import commands
 from Messages import RouteMessage
 from configparser import ConfigParser
+from googleapiclient.discovery import build
 from Roll import Roll
 from Wordle import Wordle
+from Music import Music
 
 #=====================================================================
 #=                         Initialization                            =
 #=====================================================================
 intents = discord.Intents.default()
+
 intents.message_content = True
 intents.members = True
-bot = commands.Bot(command_prefix = "~", intents=intents)
+intents.voice_states = True
+
+bot = commands.Bot(command_prefix = "-", intents=intents)
+
 config = ConfigParser()
 config.read('../config/bot.cfg')
 
+youtube = build("youtube", "v3", developerKey=config.get('youtube', 'key'))
 
 #=====================================================================
 #=                          Commands                                 =
 #=====================================================================
+
+#==========================#
+#     General Commands     #
+#==========================#
 @bot.command(
     name='wordle',
     description='Wordle stats for a given user',
@@ -99,7 +110,46 @@ async def qp(ctx, *args):
     msg = ctx.message
     await msg.add_reaction('❌')
     await msg.add_reaction('✅')
+
+#==========================#
+#      Music Commands      #
+#==========================#
+
+@bot.command(
+        name='play',
+        description='Plays a song',
+        pass_context=True,
+)
+async def play(ctx, *args):
+    m = Music(args, ctx)
+    await m.play(youtube)
+
+@bot.command(
+        name='queue',
+        description='Shows the current queue',
+        pass_context=True,
+)
+async def queue(ctx, *args):
+    m = Music(args, ctx)
+    await m.showQueue()
     
+@bot.command(
+        name='skip',
+        description='Skips the current song',
+        pass_context=True,
+)
+async def skip(ctx, *args):
+    m = Music(args, ctx)
+    await m.skipSong()
+
+@bot.command(
+    name='stop',
+    description='Disconnects the bot',
+    pass_context=True,
+)
+async def stop(ctx, *args):
+    m = Music(args, ctx)
+    await m.stopMusic()
 #=====================================================================
 #=                          Events                                   =
 #=====================================================================
@@ -117,6 +167,17 @@ async def on_message(message):
     if message.content == "test":
         await message.channel.send("response")
 
+@bot.listen()
+async def on_voice_state_update(member, before, after):
+    if member != bot.user:
+        return
+    if before.channel is not None and after.channel is None:
+        con = Utils.ConnectDB()
+        cursor = con.cursor()
+        if before.channel.guild.id:
+            guildId = before.channel.guild.id
+            cursor.execute('DELETE FROM T_QUEUE WHERE GUILD_ID = ?', (guildId,))
+            con.commit()
 
 #=====================================================================
 #=                          Entry                                    =
