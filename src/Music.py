@@ -50,15 +50,17 @@ class Music():
                 msg = "Failed to add song to queue"
                 await self.ctx.send(msg)
                 return
-            musicFile = await asyncio.get_event_loop().run_in_executor(None, self.ytDownload, ytUrl)
-            if musicFile is None:
-                msg = "Failed to pre-cache queued song"
+            try:
+                musicFile = await asyncio.get_event_loop().run_in_executor(None, self.ytDownload, ytUrl)
+            except Exception as e:
+                msg = "Failed to pre-cache queued song: " + e
                 await self.ctx.send(msg)
             return
      
         queueEmpty = False
         inQueue = False
         while queueEmpty is False:
+            isPlayable = True
             if inQueue:
                 res = self.deleteQueue(queueId)
                 if not res:
@@ -66,16 +68,19 @@ class Music():
                     await self.ctx.send(msg)
                     return
 
-            musicFile = await asyncio.get_event_loop().run_in_executor(None, self.ytDownload, ytUrl)
-            if musicFile is None:
-                msg = "Song retrieval failed. Please try again later"
+            try:
+                musicFile = await asyncio.get_event_loop().run_in_executor(None, self.ytDownload, ytUrl)
+            except Exception as e:
+                msg = "Song retrieval failed:" + e
                 await self.ctx.send(msg)
+                isPlayable = False
 
-            played = await self.playMusic(musicFile)
+            if isPlayable:
+                played = await self.playMusic(musicFile)
+
             if not played:
                 msg = "Failed to play song"
                 await self.ctx.send(msg)
-
 
             queueCount = self.checkQueue()
 
@@ -232,8 +237,9 @@ class Music():
                 self.songTitle = info['title']
                 self.songChannel = info['uploader']
                 self.songDuration = info['duration']
-        except Exception as e:
-            return None
+                return True
+        except Exception as e:   
+            return False
         
     async def nowPlayingMsg(self):
         try:
@@ -259,7 +265,12 @@ class Music():
     async def insertQueue(self, url):
         guildId = self.ctx.guild.id
         self.setTime()
-        self.setYtInfo(url)
+        isValid = self.setYtInfo(url)
+
+        if not isValid:
+            msg = "Error: YouTube info retrieval failed"
+            await self.ctx.send(msg)
+            return False
 
         query = "INSERT INTO T_QUEUE (GUILD_ID, URL, DTE_ADDED, TIME_ADDED) VALUES(?,?,?,?)"
         try:
